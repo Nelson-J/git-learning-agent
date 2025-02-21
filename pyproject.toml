@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "git-learning-agent-update"
+version = "0.1.0"
+description = "An interactive educational tool to learn Git."
+authors = ["Your Name <your.email@example.com>"]
+license = "MIT"
+packages = [{include = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+pytest = "^6.2"
+flake8 = "^3.9"
+black = "^21.9b0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^6.2"
+flake8 = "^3.9"
+black = "^21.9b0"
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore::RuntimeWarning:unittest.case"
+]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
