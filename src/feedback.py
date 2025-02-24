@@ -47,9 +47,7 @@ class FeedbackManager:
                 "invalid_command": FeedbackTemplate(
                     error_type="invalid_command",
                     category=ErrorCategory.SYNTAX,
-                    message_template=(
-                        "The command '{command}' is not valid."
-                    ),
+                    message_template=("The command '{command}' is not valid."),
                     hints=[
                         "Check the command spelling",
                         "Use 'git help' to see available commands",
@@ -127,10 +125,7 @@ class FeedbackManager:
             if self.attempt_count[error_type] > 1:
                 hints = template.get_hints(self.attempt_count[error_type])
                 formatted_hints = [f"- {hint}" for hint in hints]
-                message = (
-                    f"{message}\n\n"
-                    f"Hints:\n{chr(10).join(formatted_hints)}"
-                )
+                message = f"{message}\n\n" f"Hints:\n{chr(10).join(formatted_hints)}"
 
             return message
         except KeyError as e:
@@ -164,13 +159,9 @@ class FeedbackManager:
         # Add progressive hints based on attempt count
         if attempt_count > 1:
             formatted_hints = [
-                f"- {hint}"
-                for hint in hints[: min(len(hints), attempt_count)]
+                f"- {hint}" for hint in hints[: min(len(hints), attempt_count)]
             ]
-            message = (
-                f"{message}\n\n"
-                f"Hints:\n{chr(10).join(formatted_hints)}"
-            )
+            message = f"{message}\n\n" f"Hints:\n{chr(10).join(formatted_hints)}"
 
         # Add examples after multiple attempts
         if attempt_count > 2 and template.examples:
@@ -186,12 +177,20 @@ class FeedbackManager:
             self.attempt_count.clear()
 
     def process_feedback(self):
-        feedback_msg = (
-            "Long line split into "
-            "multiple parts for better readability"
-        )
+        feedback_msg = "Long line split into " "multiple parts for better readability"
         if self.validation_needed():
-            self.process_something(
-                parameter="value"
-            )
+            self.process_something(parameter="value")
         return feedback_msg
+
+    def generate_feedback(self, context, error_type):
+        # Break long lines into multiple lines
+        template = self.feedback_templates.get(
+            error_type,
+            self.default_template
+        )
+        
+    def format_message(self, template, context):
+        # Break long line into multiple lines
+        return template.format(
+            **context
+        ) if context else template

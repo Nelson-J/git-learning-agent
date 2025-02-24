@@ -23,11 +23,7 @@ def main() -> None:
     command = args.command
 
     persistence = PersistenceLayer()
-    user = UserProfile(
-        user_id="1",
-        username="test_user",
-        email="test@example.com"
-    )
+    user = UserProfile(user_id="1", username="test_user", email="test@example.com")
     persistence.add_user(user)
 
     # Simulate command execution

@@ -108,6 +108,53 @@ class VirtualRepository:
         self.current_branch = name
         return True
 
+    def merge_branch(self, source_branch: str) -> bool:
+        """Merge source branch into current branch."""
+        if (
+            not self.initialized
+            or source_branch not in self.branches
+            or source_branch == self.current_branch
+        ):
+            return False
+
+        source_commit = self.branches[source_branch].head
+        target_commit = self.branches[self.current_branch].head
+
+        # Cannot merge if source branch has no commits
+        if not source_commit:
+            return False
+
+        # Simple fast-forward merge if target has no commits
+        if not target_commit:
+            self.branches[self.current_branch].head = source_commit
+            return True
+
+        # Create merge commit
+        merge_message = f"Merge branch '{source_branch}' into {self.current_branch}"
+        timestamp = datetime.now()
+        merge_hash = hashlib.sha1(
+            f"{timestamp}{merge_message}{target_commit}{source_commit}".encode()
+        ).hexdigest()
+
+        # Combine files from both branches
+        files_snapshot = {}
+        if target_commit in self.commits:
+            files_snapshot.update(self.commits[target_commit].files or {})
+        if source_commit in self.commits:
+            files_snapshot.update(self.commits[source_commit].files or {})
+
+        merge_commit = Commit(
+            hash=merge_hash,
+            message=merge_message,
+            timestamp=timestamp,
+            parent=target_commit,
+            files=files_snapshot,
+        )
+
+        self.commits[merge_hash] = merge_commit
+        self.branches[self.current_branch].head = merge_hash
+        return True
+
     def get_history(self) -> List[Commit]:
         """Get commit history of current branch."""
         history = []

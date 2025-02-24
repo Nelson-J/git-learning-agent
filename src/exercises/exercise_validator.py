@@ -1,9 +1,9 @@
 from typing import List, Dict, Optional, Tuple
 import os
-from .repository import VirtualRepository
-from .feedback import FeedbackManager  # This import should now work
-from .learning_paths import PathManager
-from .models import Exercise, GitCommand
+from ..repository import VirtualRepository
+from ..feedback import FeedbackManager
+from ..learning_paths import PathManager
+from ..models import Exercise, GitCommand
 
 
 class ExerciseValidator:
@@ -23,7 +23,6 @@ class ExerciseValidator:
             os.makedirs(path)
 
     def start_exercise(self, path_name: str, exercise_name: str) -> Tuple[bool, str]:
-        """Initialize an exercise from a learning path."""
         if not self.path_manager.start_path(path_name):
             return False, "Invalid learning path"
 
@@ -33,7 +32,6 @@ class ExerciseValidator:
         return True, f"Started exercise: {exercise_name}"
 
     def validate_command(self, command: GitCommand) -> Tuple[bool, str]:
-        """Validate a git command."""
         if not self.virtual_repo:
             return False, self._get_feedback("workspace_not_initialized")
 
@@ -44,14 +42,15 @@ class ExerciseValidator:
             "init": self._validate_init,
             "add": self._validate_add,
             "commit": self._validate_commit,
-            "branch": self._validate_branch
+            "branch": self._validate_branch,
+            "merge": self._validate_merge,
+            "checkout": self._validate_checkout,
         }
         validator = validators.get(command.name)
         if not validator:
             return False, self._get_feedback("unsupported_command")
 
         success, message = validator(command)
-        # Split long line for line 55
         if success and self.current_path and self.current_exercise:
             self.path_manager.complete_exercise(
                 self.current_path,
@@ -59,22 +58,10 @@ class ExerciseValidator:
             )
         return success, message
 
-    def _validate_command_impl(self, command: GitCommand) -> tuple[bool, str]:
-        if command.name == "init":
-            return self._validate_init(command)
-        elif command.name == "add":
-            return self._validate_add(command)
-        elif command.name == "commit":
-            return self._validate_commit(command)
-        elif command.name == "branch":
-            return self._validate_branch(command)
-        return False, self._get_feedback("unsupported_command")
-
     def _get_feedback(self, error_type: str, context: Dict = None) -> str:
-        """Get formatted feedback from templates."""
         return self.feedback_manager.get_feedback(error_type, context or {})
 
-    def _validate_init(self, command: GitCommand) -> tuple[bool, str]:
+    def _validate_init(self, command: GitCommand) -> Tuple[bool, str]:
         success = self.virtual_repo.init()
         return (
             success,
@@ -83,12 +70,9 @@ class ExerciseValidator:
             else "Repository already initialized",
         )
 
-    def _validate_add(self, command: GitCommand) -> tuple[bool, str]:
+    def _validate_add(self, command: GitCommand) -> Tuple[bool, str]:
         if not command.args:
             return False, self._get_feedback("no_files_specified")
-
-        if not self.virtual_repo.initialized:
-            return False, "Repository not initialized"
 
         # First add file to repo if it exists in workspace
         for file_path in command.args:
@@ -99,34 +83,25 @@ class ExerciseValidator:
                 self.virtual_repo.add_file(file_path, content)
 
         # Then stage the files
-        all_staged = all(
-            self.virtual_repo.stage_file(file) for file in command.args
-        )
-        return (True, "Files staged successfully") if all_staged else (
-            False, "Failed to stage files"
+        all_staged = all(self.virtual_repo.stage_file(file) for file in command.args)
+        return (
+            (True, "Files staged successfully")
+            if all_staged
+            else (False, "Failed to stage files")
         )
 
-    def _validate_commit(self, command: GitCommand) -> tuple[bool, str]:
-        if not self.virtual_repo.initialized:
-            return False, "Repository not initialized"
-
+    def _validate_commit(self, command: GitCommand) -> Tuple[bool, str]:
         if not command.args or len(command.args) < 2 or command.args[0] != "-m":
             return False, self._get_feedback("invalid_commit_format")
 
         commit_hash = self.virtual_repo.commit(command.args[1])
-
-        if commit_hash and self.current_path and self.current_exercise:
-            self.path_manager.complete_exercise(
-                self.current_path, self.current_exercise
-            )
-
         return bool(commit_hash), (
             self._get_feedback("commit_success")
             if commit_hash
             else self._get_feedback("nothing_to_commit")
         )
 
-    def _validate_branch(self, command: GitCommand) -> tuple[bool, str]:
+    def _validate_branch(self, command: GitCommand) -> Tuple[bool, str]:
         if not command.args:
             return False, "Branch name not specified"
 
@@ -138,8 +113,34 @@ class ExerciseValidator:
             else "Failed to create branch",
         )
 
+    def _validate_merge(self, command: GitCommand) -> Tuple[bool, str]:
+        if not command.args:
+            return False, "Branch name not specified"
+
+        source_branch = command.args[0]
+        if source_branch not in self.virtual_repo.branches:
+            return False, f"Branch '{source_branch}' does not exist"
+
+        success = self.virtual_repo.merge_branch(source_branch)
+        if success:
+            message = f"Successfully merged '{source_branch}' into '{self.virtual_repo.current_branch}'"
+        else:
+            message = "Merge failed - ensure branches have commits and no conflicts"
+        return success, message
+
+    def _validate_checkout(self, command: GitCommand) -> Tuple[bool, str]:
+        if not command.args:
+            return False, "Branch name not specified"
+
+        branch_name = command.args[0]
+        success = self.virtual_repo.switch_branch(branch_name)
+        return success, (
+            f"Switched to branch '{branch_name}'"
+            if success
+            else f"Failed to switch to branch '{branch_name}'"
+        )
+
     def get_hints(self, error_type: str) -> List[str]:
-        """Get progressive hints for an error type."""
         if not hasattr(self, "hint_generator"):
             return [self.feedback_manager.get_feedback(error_type)]
 
@@ -151,7 +152,6 @@ class ExerciseValidator:
         ).split("\n")
 
     def init(self) -> bool:
-        """Initialize the validator's virtual repository."""
         if self.virtual_repo:
             return self.virtual_repo.init()
         return False
@@ -159,10 +159,4 @@ class ExerciseValidator:
     def get_current_exercise(
         self, path_name: str, exercise_name: str
     ) -> Optional[Exercise]:
-        # Simplified exercise lookup
         return None  # TODO: Implement proper exercise lookup
-
-    def validate_exercise(self):
-        # Split long line into multiple lines for readability
-        return ("This is a shorter line that was "
-                "previously too long")

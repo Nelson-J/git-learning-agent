@@ -1,9 +1,10 @@
 import unittest
-from src.exercises import ExerciseValidator, GitCommand
-from src.repository import VirtualRepository
 import tempfile
 import shutil
 import os
+from src.models import GitCommand
+from src.exercises import ExerciseValidator
+from src.repository import VirtualRepository
 
 
 class TestExerciseValidation(unittest.TestCase):

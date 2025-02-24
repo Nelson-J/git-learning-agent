@@ -3,7 +3,8 @@ import shutil
 import tempfile
 import unittest
 
-from src.exercises import Exercise, ExerciseValidator, GitCommand
+from src.models import Exercise, GitCommand
+from src.exercises import ExerciseValidator
 
 
 class TestExercises(unittest.TestCase):
@@ -24,7 +25,7 @@ class TestExercises(unittest.TestCase):
             name="init",
             args=[],
             expected_output="Initialized empty Git repository",
-            validation_rules={"must_exist": ".git"}
+            validation_rules={"must_exist": ".git"},
         )
         exercise.add_command(command)
 
@@ -36,7 +37,7 @@ class TestExercises(unittest.TestCase):
             name="init",
             args=[],
             expected_output="Initialized empty Git repository",
-            validation_rules={"must_exist": ".git"}
+            validation_rules={"must_exist": ".git"},
         )
         os.makedirs(os.path.join(self.temp_dir, ".git"))
         success, message = self.validator.validate_command(command)
@@ -48,7 +49,7 @@ class TestExercises(unittest.TestCase):
             name="init",
             args=[],
             expected_output="Initialized empty Git repository",
-            validation_rules={"must_exist": ".git"}
+            validation_rules={"must_exist": ".git"},
         )
         self.validator.validate_command(init_command)
 
@@ -57,7 +58,7 @@ class TestExercises(unittest.TestCase):
             name="add",
             args=["test.txt"],
             expected_output="",
-            validation_rules={"must_be_staged": "test.txt"}
+            validation_rules={"must_be_staged": "test.txt"},
         )
         self.validator.virtual_repo.add_file("test.txt", "test content")
         success, message = self.validator.validate_command(command)
@@ -69,7 +70,7 @@ class TestExercises(unittest.TestCase):
             name="init",
             args=[],
             expected_output="Initialized empty Git repository",
-            validation_rules={"must_exist": ".git"}
+            validation_rules={"must_exist": ".git"},
         )
         self.validator.validate_command(init_cmd)
         # Prepare test file with proper spacing
@@ -82,7 +83,7 @@ class TestExercises(unittest.TestCase):
             name="commit",
             args=["-m", "Initial commit"],
             expected_output="",
-            validation_rules={"must_have_commit": "Initial commit"}
+            validation_rules={"must_have_commit": "Initial commit"},
         )
         success, _ = self.validator.validate_command(cmd)
         self.assertTrue(success)
@@ -92,11 +93,61 @@ class TestExercises(unittest.TestCase):
             name="branch",
             args=["feature"],
             expected_output="",
-            validation_rules={"branch_exists": "feature"}
+            validation_rules={"branch_exists": "feature"},
         )
         self.validator.virtual_repo.init()
         success, message = self.validator.validate_command(command)
         self.assertTrue(success)
+
+    def test_validate_merge_command(self):
+        """Test merge command validation."""
+        # Setup initial repository state
+        self.validator.virtual_repo.init()
+
+        # Add and commit a file on main branch
+        self.validator.virtual_repo.add_file("main.txt", "main content")
+        self.validator.virtual_repo.stage_file("main.txt")
+        self.validator.virtual_repo.commit("Initial commit")
+
+        # Create and switch to feature branch
+        self.validator.virtual_repo.create_branch("feature")
+        self.validator.virtual_repo.switch_branch("feature")
+
+        # Add and commit a file on feature branch
+        self.validator.virtual_repo.add_file("feature.txt", "feature content")
+        self.validator.virtual_repo.stage_file("feature.txt")
+        self.validator.virtual_repo.commit("Feature commit")
+
+        # Switch back to main
+        self.validator.virtual_repo.switch_branch("main")
+
+        # Test merging
+        merge_cmd = GitCommand(
+            name="merge",
+            args=["feature"],
+            expected_output="",
+            validation_rules={"branch_merged": "feature"},
+        )
+        success, message = self.validator.validate_command(merge_cmd)
+        self.assertTrue(success)
+        self.assertIn("Successfully merged", message)
+
+    def test_validate_checkout_command(self):
+        """Test checkout command validation."""
+        # Setup repository
+        self.validator.virtual_repo.init()
+        self.validator.virtual_repo.create_branch("feature")
+
+        # Test checkout
+        checkout_cmd = GitCommand(
+            name="checkout",
+            args=["feature"],
+            expected_output="",
+            validation_rules={"current_branch": "feature"},
+        )
+        success, message = self.validator.validate_command(checkout_cmd)
+        self.assertTrue(success)
+        self.assertEqual(self.validator.virtual_repo.current_branch, "feature")
 
     def test_exercise_path_integration(self):
         """Test integration between exercises and learning paths."""
@@ -111,7 +162,7 @@ class TestExercises(unittest.TestCase):
             name="init",
             args=[],
             expected_output="Initialized empty Git repository",
-            validation_rules={"must_exist": ".git"}
+            validation_rules={"must_exist": ".git"},
         )
         success, message = self.validator.validate_command(command)
         self.assertTrue(success)
@@ -127,7 +178,7 @@ class TestExercises(unittest.TestCase):
             name="add",
             args=["test.txt"],
             expected_output="",
-            validation_rules={"must_be_staged": "test.txt"}
+            validation_rules={"must_be_staged": "test.txt"},
         )
         success, message = self.validator.validate_command(command)
         self.assertFalse(success)

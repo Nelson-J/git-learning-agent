@@ -14,14 +14,14 @@ class GitFeedbackTemplates:
                 hints=[
                     "Open the conflicted files and look for markers",
                     "Decide which changes to keep",
-                    "Stage and commit after resolving"
+                    "Stage and commit after resolving",
                 ],
                 examples={
                     "resolve": (
                         "git add resolved_file.txt\n"
                         'git commit -m "Resolve merge conflict"'
                     )
-                }
+                },
             ),
             "detached_head": FeedbackTemplate(
                 error_type="detached_head",

@@ -7,6 +7,7 @@ from .hint_generator import HintContext, ProgressiveHintGenerator  # Added impor
 @dataclass
 class AssistanceLevel:
     """Define the levels of assistance provided to users."""
+
     basic: str
     intermediate: str
     advanced: str
@@ -18,6 +19,7 @@ class AssistanceLevel:
 
 class AssistanceProvider:
     """Provides contextualized assistance based on user skill level."""
+
     def __init__(self):
         self.assistance_database: Dict[str, AssistanceLevel] = {}
         self._initialize_assistance()
@@ -28,13 +30,13 @@ class AssistanceProvider:
             "init": AssistanceLevel(
                 basic="Initialize a new Git repository",
                 intermediate="Set up Git in your project directory",
-                advanced="Configure Git repository with custom settings"
+                advanced="Configure Git repository with custom settings",
             ),
             "add": AssistanceLevel(
                 basic="Stage files for commit",
                 intermediate="Select specific changes to stage",
-                advanced="Use interactive staging"
-            )
+                advanced="Use interactive staging",
+            ),
         }
 
     def get_assistance(self, command: str, skill_level: str) -> str:
@@ -69,7 +71,7 @@ class ProgressiveAssistance:
             self._current_assistance[exercise_id] = AssistanceLevel(
                 basic="Initial assistance",
                 intermediate="Standard assistance",
-                advanced="Detailed assistance"
+                advanced="Detailed assistance",
             )
 
         # Update attempt count if enough time has passed

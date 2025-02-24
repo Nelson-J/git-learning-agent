@@ -40,65 +40,67 @@ class FeedbackManager:
         self.attempt_count: Dict[str, int] = {}
 
     def _initialize_templates(self):
-        self._templates.update({
-            "invalid_command": FeedbackTemplate(
-                error_type="invalid_command",
-                category=ErrorCategory.SYNTAX,
-                message_template="The command '{command}' is not valid.",
-                hints=[
-                    "Check the command spelling",
-                    "Use 'git help' to see available commands",
-                ],
-            ),
-            "invalid_commit_format": FeedbackTemplate(
-                error_type="invalid_commit_format",
-                category=ErrorCategory.SYNTAX,
-                message_template="Invalid commit message format.",
-                hints=[
-                    "Use -m flag followed by your message in quotes",
-                    "Keep the message clear and descriptive",
-                ],
-            ),
-            "uninitialized_repo": FeedbackTemplate(
-                error_type="uninitialized_repo",
-                category=ErrorCategory.WORKFLOW,
-                message_template="You need to initialize a repository first.",
-                hints=[
-                    "Use 'git init' to create a new repository",
-                    "Make sure you're in the right directory",
-                ],
-            ),
-            "no_files_specified": FeedbackTemplate(
-                error_type="no_files_specified",
-                category=ErrorCategory.SYNTAX,
-                message_template="No files specified for staging.",
-                hints=[
-                    "Use 'git add <filename>' to stage specific files",
-                    "Use 'git add .' to stage all changes",
-                    "Use 'git status' to see which files can be staged",
-                ],
-            ),
-            "files_staged_success": FeedbackTemplate(
-                error_type="files_staged_success",
-                category=ErrorCategory.WORKFLOW,
-                message_template="Files staged successfully.",
-                hints=[
-                    "Next, commit your changes using 'git commit -m \"your message\"'",
-                    "Use 'git status' to verify staged changes",
-                ],
-                examples={"commit": 'git commit -m "Add new feature"'},
-            ),
-            "nothing_to_commit": FeedbackTemplate(
-                error_type="nothing_to_commit",
-                category=ErrorCategory.WORKFLOW,
-                message_template="Nothing to commit. Working tree clean.",
-                hints=[
-                    "Stage changes first using 'git add'",
-                    "Check staged files with 'git status'",
-                    "Make sure you have modified files",
-                ],
-            ),
-        })
+        self._templates.update(
+            {
+                "invalid_command": FeedbackTemplate(
+                    error_type="invalid_command",
+                    category=ErrorCategory.SYNTAX,
+                    message_template="The command '{command}' is not valid.",
+                    hints=[
+                        "Check the command spelling",
+                        "Use 'git help' to see available commands",
+                    ],
+                ),
+                "invalid_commit_format": FeedbackTemplate(
+                    error_type="invalid_commit_format",
+                    category=ErrorCategory.SYNTAX,
+                    message_template="Invalid commit message format.",
+                    hints=[
+                        "Use -m flag followed by your message in quotes",
+                        "Keep the message clear and descriptive",
+                    ],
+                ),
+                "uninitialized_repo": FeedbackTemplate(
+                    error_type="uninitialized_repo",
+                    category=ErrorCategory.WORKFLOW,
+                    message_template="You need to initialize a repository first.",
+                    hints=[
+                        "Use 'git init' to create a new repository",
+                        "Make sure you're in the right directory",
+                    ],
+                ),
+                "no_files_specified": FeedbackTemplate(
+                    error_type="no_files_specified",
+                    category=ErrorCategory.SYNTAX,
+                    message_template="No files specified for staging.",
+                    hints=[
+                        "Use 'git add <filename>' to stage specific files",
+                        "Use 'git add .' to stage all changes",
+                        "Use 'git status' to see which files can be staged",
+                    ],
+                ),
+                "files_staged_success": FeedbackTemplate(
+                    error_type="files_staged_success",
+                    category=ErrorCategory.WORKFLOW,
+                    message_template="Files staged successfully.",
+                    hints=[
+                        "Next, commit your changes using 'git commit -m \"your message\"'",
+                        "Use 'git status' to verify staged changes",
+                    ],
+                    examples={"commit": 'git commit -m "Add new feature"'},
+                ),
+                "nothing_to_commit": FeedbackTemplate(
+                    error_type="nothing_to_commit",
+                    category=ErrorCategory.WORKFLOW,
+                    message_template="Nothing to commit. Working tree clean.",
+                    hints=[
+                        "Stage changes first using 'git add'",
+                        "Check staged files with 'git status'",
+                        "Make sure you have modified files",
+                    ],
+                ),
+            }
+        )
 
     def get_feedback(self, error_type: str, context: Dict[str, str] = None) -> str:
         template = self._templates.get(error_type)
@@ -151,3 +153,9 @@ class FeedbackManager:
             self.attempt_count.pop(error_type, None)
         else:
             self.attempt_count.clear()
+
+    def get_feedback_template(self, error_type):
+        return self.templates.get(
+            error_type,
+            self.default_template
+        )

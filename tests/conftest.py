@@ -29,13 +29,13 @@ def basic_exercise() -> Exercise:
     exercise = Exercise(
         name="init_repo",
         description="Initialize a Git repository",
-        difficulty="beginner"
+        difficulty="beginner",
     )
     command = GitCommand(
         name="init",
         args=[],
         expected_output="Initialized empty Git repository",
-        validation_rules={"must_exist": ".git"}
+        validation_rules={"must_exist": ".git"},
     )
     exercise.add_command(command)
     return exercise

@@ -28,9 +28,7 @@ class TestGitFeedbackTemplates(unittest.TestCase):
         for template in self.templates.values():
             if template.hints:  # Some templates might not need hints
                 self.assertGreater(len(template.hints), 0)
-                self.assertTrue(
-                    all(isinstance(hint, str) for hint in template.hints)
-                )
+                self.assertTrue(all(isinstance(hint, str) for hint in template.hints))
 
 
 if __name__ == "__main__":

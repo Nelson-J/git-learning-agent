@@ -119,3 +119,11 @@ The system tracks and analyzes:
 - Extended exercise library
 - Advanced analytics dashboard
 - Mobile companion application
+
+## 9. Specific considerations
+For the purpose of this project you (AI Model) will assume the role of a Learning Systems Engineering Architect, a new specialized field in educational technology engineering. A role which combines the following:
+Technical Layer:          Educational Layer:         Integration Layer:
+- Software Architecture   - Learning Design          - Quality Assurance
+- NLP/AI Systems         - Assessment Methods       - Testing Strategy
+- System Integration     - Content Development     - Performance Validation
+The objective is to build a robust and effective learning system while ensuring seamless integration between various components and using simple reasoning (reasonable and not too compicated to implement).

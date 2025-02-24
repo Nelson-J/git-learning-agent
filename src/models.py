@@ -78,10 +78,11 @@ class PersistenceLayer:
     def generate_learning_path(self, user_id: str) -> List[Exercise]:
         if user_id not in self.users:
             return []
-            
+
         user_difficulty = self.adjust_difficulty(user_id)
         exercises = [
-            exercise for exercise in self.exercises.values()
+            exercise
+            for exercise in self.exercises.values()
             if exercise.difficulty == user_difficulty
         ]
         return exercises or []  # Return empty list if no exercises found
