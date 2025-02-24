@@ -8,13 +8,13 @@ packages = [{include = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.9"
+importlib-metadata = "^4.13.0"  # Pin to a specific version
 pytest = "^6.2"
-flake8 = "^3.9"
 black = "^21.9b0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^6.2"
-flake8 = "^3.9"
+flake8 = "^5.0.0"  # Pin to a specific version
 black = "^21.9b0"
 
 [tool.pytest.ini_options]
