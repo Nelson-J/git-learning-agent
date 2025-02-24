@@ -212,3 +212,138 @@ class LearningPatternRecognizer:
         ]
 
         return mastery_concepts
+
+
+from typing import Dict, List, Optional
+from dataclasses import dataclass
+from enum import Enum
+
+
+class DifficultyLevel(Enum):
+    BEGINNER = "beginner"
+    INTERMEDIATE = "intermediate"
+    ADVANCED = "advanced"
+
+
+@dataclass
+class SkillMetrics:
+    command_success_rate: float = 0.0
+    average_completion_time: float = 0.0
+    error_frequency: Dict[str, int] = None
+    concepts_mastered: List[str] = None
+
+    def __post_init__(self):
+        self.error_frequency = self.error_frequency or {}
+        self.concepts_mastered = self.concepts_mastered or []
+
+
+class AdaptiveLearning:
+    def __init__(self):
+        self.current_difficulty: DifficultyLevel = DifficultyLevel.BEGINNER
+        self.skill_metrics: Dict[str, SkillMetrics] = {}
+        self.threshold_to_advance: float = 0.8
+        self.threshold_to_fallback: float = 0.4
+        self.knowledge_space = KnowledgeSpace()
+        self.skill_matrix = SkillMatrix(self.knowledge_space)
+        self.pattern_recognizer = LearningPatternRecognizer()
+
+    def update_metrics(self, user_id: str, command: str, success: bool, time_taken: float) -> None:
+        """Update user metrics based on their latest exercise attempt."""
+        if user_id not in self.skill_metrics:
+            self.skill_metrics[user_id] = SkillMetrics()
+
+        metrics = self.skill_metrics[user_id]
+        
+        # Update success rate
+        total_attempts = sum(metrics.error_frequency.values()) + 1
+        if success:
+            metrics.command_success_rate = (
+                (metrics.command_success_rate * (total_attempts - 1) + 1) / total_attempts
+            )
+        else:
+            metrics.command_success_rate = (
+                metrics.command_success_rate * (total_attempts - 1) / total_attempts
+            )
+            metrics.error_frequency[command] = metrics.error_frequency.get(command, 0) + 1
+
+        # Update completion time
+        metrics.average_completion_time = (
+            (metrics.average_completion_time * (total_attempts - 1) + time_taken)
+            / total_attempts
+        )
+
+    def adjust_difficulty(self, user_id: str) -> Optional[DifficultyLevel]:
+        """Adjust difficulty based on user performance."""
+        if user_id not in self.skill_metrics:
+            return None
+
+        metrics = self.skill_metrics[user_id]
+        
+        # Consider advancing difficulty
+        if (metrics.command_success_rate >= self.threshold_to_advance and
+            self.current_difficulty != DifficultyLevel.ADVANCED):
+            if self.current_difficulty == DifficultyLevel.BEGINNER:
+                self.current_difficulty = DifficultyLevel.INTERMEDIATE
+            else:
+                self.current_difficulty = DifficultyLevel.ADVANCED
+            return self.current_difficulty
+
+        # Consider reducing difficulty
+        if (metrics.command_success_rate <= self.threshold_to_fallback and
+            self.current_difficulty != DifficultyLevel.BEGINNER):
+            if self.current_difficulty == DifficultyLevel.ADVANCED:
+                self.current_difficulty = DifficultyLevel.INTERMEDIATE
+            else:
+                self.current_difficulty = DifficultyLevel.BEGINNER
+            return self.current_difficulty
+
+        return None
+
+    def get_next_exercise(self, user_id: str) -> Dict[str, str]:
+        """Get the next appropriate exercise based on user's performance."""
+        difficulty = self.current_difficulty.value
+        metrics = self.skill_metrics.get(user_id, SkillMetrics())
+        
+        # Identify areas needing improvement
+        weak_areas = sorted(
+            metrics.error_frequency.items(),
+            key=lambda x: x[1],
+            reverse=True
+        )
+
+        return {
+            "difficulty": difficulty,
+            "focus_areas": [cmd for cmd, _ in weak_areas[:3]],
+            "recommended_practice": self._get_practice_recommendations(metrics)
+        }
+
+    def _get_practice_recommendations(self, metrics: SkillMetrics) -> List[str]:
+        """Generate practice recommendations based on user metrics."""
+        recommendations = []
+        
+        if metrics.command_success_rate < 0.6:
+            recommendations.append("Practice basic commands more")
+        if any(err > 3 for err in metrics.error_frequency.values()):
+            recommendations.append("Focus on error-prone commands")
+        if metrics.average_completion_time > 120:  # 2 minutes
+            recommendations.append("Work on speed improvement")
+            
+        return recommendations or ["Continue with current difficulty level"]
+
+    def get_skill_vector(self, user_id: str) -> Union[np.ndarray, List[float]]:
+        """Get the skill vector for a user."""
+        if user_id not in self.skill_metrics:
+            return []
+        
+        metrics = self.skill_metrics[user_id]
+        performance = {
+            cmd: 1.0 - (count / sum(metrics.error_frequency.values()))
+            for cmd, count in metrics.error_frequency.items()
+        }
+        
+        return self.skill_matrix.calculate_skill_vector(performance)
+
+    def update_knowledge_space(self, user_id: str, concept: str, performance: float) -> None:
+        """Update the knowledge space for a user."""
+        self.knowledge_space.update_mastery(concept, performance)
+        self.pattern_recognizer.add_learning_event({concept: performance})

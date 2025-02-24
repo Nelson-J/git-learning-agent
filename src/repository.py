@@ -155,6 +155,56 @@ class VirtualRepository:
         self.branches[self.current_branch].head = merge_hash
         return True
 
+    def rebase(self, branch_name: str) -> bool:
+        """Simulate rebasing current branch onto target branch."""
+        if branch_name not in self.branches or not self.initialized:
+            return False
+            
+        target_commit = self.branches[branch_name].head
+        current_commit = self.branches[self.current_branch].head
+        
+        if not target_commit or not current_commit:
+            return False
+            
+        # Create new commit with combined changes
+        merge_message = f"Rebase {self.current_branch} onto {branch_name}"
+        timestamp = datetime.now()
+        rebase_hash = hashlib.sha1(
+            f"{timestamp}{merge_message}{target_commit}".encode()
+        ).hexdigest()
+        
+        # Combine files, giving preference to current branch changes
+        files_snapshot = {}
+        if target_commit in self.commits:
+            files_snapshot.update(self.commits[target_commit].files or {})
+        if current_commit in self.commits:
+            files_snapshot.update(self.commits[current_commit].files or {})
+            
+        rebase_commit = Commit(
+            hash=rebase_hash,
+            message=merge_message,
+            timestamp=timestamp,
+            parent=target_commit,
+            files=files_snapshot
+        )
+        
+        self.commits[rebase_hash] = rebase_commit
+        self.branches[self.current_branch].head = rebase_hash
+        return True
+
+    def configure_hook(self, hook_name: str, script: str) -> bool:
+        """Configure a Git hook with given script content."""
+        if not self.initialized:
+            return False
+        
+        valid_hooks = {"pre-commit", "post-commit", "pre-push", "post-merge"}
+        if hook_name not in valid_hooks:
+            return False
+            
+        # In real Git this would write to .git/hooks/
+        # Here we just simulate hook configuration
+        return True
+
     def get_history(self) -> List[Commit]:
         """Get commit history of current branch."""
         history = []

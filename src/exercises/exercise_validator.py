@@ -45,6 +45,8 @@ class ExerciseValidator:
             "branch": self._validate_branch,
             "merge": self._validate_merge,
             "checkout": self._validate_checkout,
+            "rebase": self._validate_rebase,
+            "config": self._validate_hook,
         }
         validator = validators.get(command.name)
         if not validator:
@@ -138,6 +140,63 @@ class ExerciseValidator:
             f"Switched to branch '{branch_name}'"
             if success
             else f"Failed to switch to branch '{branch_name}'"
+        )
+
+    def _validate_rebase(self, command: GitCommand) -> Tuple[bool, str]:
+        """Validate rebase command."""
+        if not command.args:
+            return False, "Target branch name required for rebase"
+            
+        success = self.virtual_repo.rebase(command.args[0])
+        return success, (
+            f"Successfully rebased onto {command.args[0]}"
+            if success
+            else "Rebase failed - ensure branches exist and have commits"
+        )
+
+    def _validate_hook(self, command: GitCommand) -> Tuple[bool, str]:
+        """Validate hook configuration command."""
+        if len(command.args) < 2 or not command.args[0].startswith("hooks."):
+            return False, "Invalid hook configuration format"
+            
+        hook_name = command.args[0].split(".")[1]
+        script_content = command.args[1]
+        success = self.virtual_repo.configure_hook(hook_name, script_content)
+        return success, (
+            f"Successfully configured {hook_name} hook"
+            if success
+            else "Failed to configure hook"
+        )
+
+    def setup_complex_scenario(self, exercise: Exercise) -> Tuple[bool, str]:
+        """Set up a complex scenario for validation."""
+        if not exercise.complex_scenario:
+            return False, "No complex scenario defined"
+            
+        # Run setup commands
+        for cmd in exercise.complex_scenario.setup_commands:
+            success, _ = self.validate_command(cmd)
+            if not success:
+                return False, "Failed to set up scenario"
+                
+        # Create conflicts if defined
+        for file_path, versions in exercise.complex_scenario.conflict_files.items():
+            self.virtual_repo.simulate_conflict(file_path, versions)
+            
+        return True, "Complex scenario set up successfully"
+
+    def validate_scenario_resolution(self, exercise: Exercise, commands: List[GitCommand]) -> Tuple[bool, str]:
+        """Validate the resolution of a complex scenario."""
+        if not exercise.complex_scenario:
+            return False, "No complex scenario to validate"
+            
+        if self.virtual_repo.is_in_conflict():
+            return False, "Conflicts not fully resolved"
+            
+        is_valid = exercise.validate_scenario_resolution(commands)
+        return is_valid, (
+            "Scenario resolved correctly" if is_valid 
+            else "Scenario not resolved as expected"
         )
 
     def get_hints(self, error_type: str) -> List[str]:

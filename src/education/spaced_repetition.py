@@ -29,6 +29,9 @@ class SpacedRepetitionSystem:
         self._review_items: Dict[str, ReviewItem] = {}
         self._minimum_interval = 1  # day
         self._maximum_interval = 365  # days
+        self.items: Dict[str, Dict] = {}
+        self.initial_interval = timedelta(days=1)
+        self.ease_factor = 2.5
 
     def add_item(self, concept_id: str) -> None:
         """Add a new item to the spaced repetition system."""
@@ -118,3 +121,50 @@ class SpacedRepetitionSystem:
             "repetitions": item.repetitions,
             "estimated_retention": self.calculate_retention(concept_id),
         }
+
+    def schedule_review(self, item_id: str) -> Optional[datetime]:
+        """Schedule next review for an item using SuperMemo2 algorithm."""
+        if item_id not in self.items:
+            self.items[item_id] = {
+                "interval": self.initial_interval,
+                "ease_factor": self.ease_factor,
+                "repetitions": 0
+            }
+            return datetime.now() + self.initial_interval
+
+        item = self.items[item_id]
+        next_interval = item["interval"] * item["ease_factor"]
+        return datetime.now() + next_interval
+
+    def process_response(self, item_id: str, quality: int) -> datetime:
+        """Process response quality (0-5) and return next review date."""
+        if quality < 0 or quality > 5:
+            raise ValueError("Quality must be between 0 and 5")
+
+        if item_id not in self.items:
+            self.items[item_id] = {
+                "interval": self.initial_interval,
+                "ease_factor": self.ease_factor,
+                "repetitions": 0
+            }
+
+        item = self.items[item_id]
+        
+        # Update ease factor
+        item["ease_factor"] = max(1.3, item["ease_factor"] + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02)))
+        
+        # Calculate next interval
+        if quality < 3:
+            item["repetitions"] = 0
+            item["interval"] = self.initial_interval
+        else:
+            item["repetitions"] += 1
+            if item["repetitions"] == 1:
+                item["interval"] = self.initial_interval
+            elif item["repetitions"] == 2:
+                item["interval"] = self.initial_interval * 6
+            else:
+                item["interval"] = timedelta(days=math.ceil(item["interval"].days * item["ease_factor"]))
+
+        next_review = datetime.now() + item["interval"]
+        return next_review

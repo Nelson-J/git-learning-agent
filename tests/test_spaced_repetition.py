@@ -65,8 +65,15 @@ class TestSpacedRepetition(unittest.TestCase):
 
     def test_review_scheduling(self):
         item_id = "test_item"
-        result = self.srs.schedule_review(item_id)
-        self.assertTrue(result)
+        next_review = self.srs.schedule_review(item_id)
+        self.assertIsInstance(next_review, datetime)
+        self.assertTrue(next_review > datetime.now())
+
+    def test_response_processing(self):
+        item_id = "test_item"
+        next_review = self.srs.process_response(item_id, 5)
+        self.assertIsInstance(next_review, datetime)
+        self.assertTrue(next_review > datetime.now())
 
 
 if __name__ == "__main__":
