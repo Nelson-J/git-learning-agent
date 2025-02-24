@@ -9,7 +9,12 @@ class TestModels(unittest.TestCase):
     def setUp(self):
         self.persistence = PersistenceLayer()
         self.user = UserProfile(user_id="1", username="test_user", email="test@example.com")
-        self.exercise = Exercise(exercise_id="1", description="Test Exercise", difficulty="beginner")
+        self.exercise = Exercise(
+            name="test_exercise",
+            description="Test Exercise",
+            difficulty="beginner",
+            exercise_id="1"
+        )
         self.progress = Progress(user_id="1", exercise_id="1", status="completed", last_attempt=datetime.now())
         self.persistence.add_user(self.user)
         self.persistence.add_exercise(self.exercise)

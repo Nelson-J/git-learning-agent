@@ -1,5 +1,6 @@
 from typing import List, Dict
 from datetime import datetime
+from dataclasses import dataclass
 
 class UserProfile:
     def __init__(self, user_id: str, username: str, email: str):
@@ -15,11 +16,27 @@ class UserProfile:
     def add_progress(self, progress: 'Progress'):
         self.progress[progress.exercise_id] = progress
 
+@dataclass
+class GitCommand:
+    name: str
+    args: List[str]
+    expected_output: str
+    validation_rules: Dict[str, str]
+
 class Exercise:
-    def __init__(self, exercise_id: str, description: str, difficulty: str):
-        self.exercise_id = exercise_id
+    def __init__(self, name: str, description: str, difficulty: str, exercise_id: str = None):
+        self.name = name
         self.description = description
         self.difficulty = difficulty
+        self.exercise_id = exercise_id or name  # Use name as id if not provided
+        self.commands: List[GitCommand] = []
+        self.feedback_templates: Dict[str, str] = {}
+
+    def add_command(self, command: GitCommand):
+        self.commands.append(command)
+
+    def add_feedback(self, error_type: str, template: str):
+        self.feedback_templates[error_type] = template
 
 class Progress:
     def __init__(self, user_id: str, exercise_id: str, status: str, last_attempt: datetime):
