@@ -342,7 +342,7 @@
 
 ## Conclusion
 
-For every implementation of a feature found in the plan, update the plan to markk that feature as complete.
+For every implementation of a feature found in the plan, update the plan to markk that feature as complete. The project code should be written accordng to the defined style guides and best practices.
 When the entire project is substantially modified, it will be pushed to github so we can track changes and see how the project has evolved over time.
 Start each development phase by reviewing the relevant sections of the context file
 Use the development plan to guide regular development activities

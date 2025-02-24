@@ -1,16 +1,54 @@
-from typing import Dict, List, Optional
+from typing import Dict
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from .categories import FeedbackCategory, ErrorLevel
-from .hint_generator import HintContext, ProgressiveHintGenerator
+from .hint_generator import HintContext, ProgressiveHintGenerator  # Added import
+
 
 @dataclass
 class AssistanceLevel:
-    level: int
-    hints_revealed: int
-    examples_shown: bool
-    full_explanation: bool
-    next_steps_shown: bool
+    """Define the levels of assistance provided to users."""
+    basic: str
+    intermediate: str
+    advanced: str
+    hints_revealed: int = 0
+    examples_shown: bool = False
+    full_explanation: bool = False
+    next_steps_shown: bool = False
+
+
+class AssistanceProvider:
+    """Provides contextualized assistance based on user skill level."""
+    def __init__(self):
+        self.assistance_database: Dict[str, AssistanceLevel] = {}
+        self._initialize_assistance()
+
+    def _initialize_assistance(self) -> None:  # Fixed: Added self parameter
+        """Initialize the assistance database with predefined levels."""
+        self.assistance_database = {
+            "init": AssistanceLevel(
+                basic="Initialize a new Git repository",
+                intermediate="Set up Git in your project directory",
+                advanced="Configure Git repository with custom settings"
+            ),
+            "add": AssistanceLevel(
+                basic="Stage files for commit",
+                intermediate="Select specific changes to stage",
+                advanced="Use interactive staging"
+            )
+        }
+
+    def get_assistance(self, command: str, skill_level: str) -> str:
+        """Get appropriate assistance based on skill level."""
+        if command not in self.assistance_database:
+            return "No assistance available for this command."
+
+        level = self.assistance_database[command]
+        if skill_level == "beginner":
+            return level.basic
+        elif skill_level == "intermediate":
+            return level.intermediate
+        return level.advanced
+
 
 class ProgressiveAssistance:
     def __init__(self):
@@ -19,17 +57,19 @@ class ProgressiveAssistance:
         self._hint_generator = ProgressiveHintGenerator()
         self._current_assistance: Dict[str, AssistanceLevel] = {}
 
-    def get_assistance(self, exercise_id: str, error_type: str, 
-                      context: HintContext) -> Dict[str, any]:
+    def get_assistance(
+        self, exercise_id: str, error_type: str, context: HintContext
+    ) -> Dict[str, any]:
         """Get progressive assistance based on context and history."""
         current_time = datetime.now()
-        
+
         # Initialize or update attempt tracking
         if exercise_id not in self._attempts:
             self._attempts[exercise_id] = 0
             self._current_assistance[exercise_id] = AssistanceLevel(
-                level=0, hints_revealed=0, examples_shown=False,
-                full_explanation=False, next_steps_shown=False
+                basic="Initial assistance",
+                intermediate="Standard assistance",
+                advanced="Detailed assistance"
             )
 
         # Update attempt count if enough time has passed
@@ -42,10 +82,10 @@ class ProgressiveAssistance:
 
         # Progressive assistance logic
         response = {
-            "hints": hints[:assistance.hints_revealed + 1],
+            "hints": hints[: assistance.hints_revealed + 1],
             "show_example": assistance.examples_shown,
             "show_explanation": assistance.full_explanation,
-            "show_next_steps": assistance.next_steps_shown
+            "show_next_steps": assistance.next_steps_shown,
         }
 
         # Update assistance level based on attempts

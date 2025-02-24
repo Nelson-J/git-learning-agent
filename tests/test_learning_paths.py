@@ -1,5 +1,6 @@
 import unittest
-from src.learning_paths import PathManager, BeginnerPaths
+from src.learning_paths import PathManager
+
 
 class TestLearningPaths(unittest.TestCase):
     def setUp(self):
@@ -31,19 +32,22 @@ class TestLearningPaths(unittest.TestCase):
     def test_path_progress(self):
         path_name = "basic_git_workflow"
         self.assertTrue(self.path_manager.start_path(path_name))
-        
+
         # Complete exercises
         self.assertTrue(self.path_manager.complete_exercise(path_name, "init_repo"))
         self.assertTrue(self.path_manager.complete_exercise(path_name, "first_commit"))
         self.assertTrue(self.path_manager.complete_exercise(path_name, "view_history"))
-        
+
         # Verify path completion
         self.assertTrue(self.path_manager.is_path_completed(path_name))
 
     def test_invalid_path_progress(self):
         self.assertFalse(self.path_manager.start_path("nonexistent_path"))
-        self.assertFalse(self.path_manager.complete_exercise("nonexistent_path", "exercise"))
+        self.assertFalse(
+            self.path_manager.complete_exercise("nonexistent_path", "exercise")
+        )
         self.assertFalse(self.path_manager.is_path_completed("nonexistent_path"))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import List, Dict, Optional
 from .models import Exercise
 
+
 @dataclass
 class LearningPath:
     name: str
@@ -10,6 +11,7 @@ class LearningPath:
     prerequisites: List[str]
     exercises: List[Exercise]
     completion_criteria: Dict[str, int]
+
 
 class BeginnerPaths:
     @staticmethod
@@ -20,11 +22,13 @@ class BeginnerPaths:
             difficulty="beginner",
             prerequisites=[],
             exercises=[
-                Exercise("init_repo", "Initialize your first Git repository", "beginner"),
+                Exercise(
+                    "init_repo", "Initialize your first Git repository", "beginner"
+                ),
                 Exercise("first_commit", "Make your first commit", "beginner"),
-                Exercise("view_history", "View your commit history", "beginner")
+                Exercise("view_history", "View your commit history", "beginner"),
             ],
-            completion_criteria={"exercises_completed": 3}
+            completion_criteria={"exercises_completed": 3},
         )
 
     @staticmethod
@@ -37,10 +41,11 @@ class BeginnerPaths:
             exercises=[
                 Exercise("create_branch", "Create your first branch", "beginner"),
                 Exercise("switch_branch", "Switch between branches", "beginner"),
-                Exercise("merge_branch", "Merge your first branch", "beginner")
+                Exercise("merge_branch", "Merge your first branch", "beginner"),
             ],
-            completion_criteria={"exercises_completed": 3}
+            completion_criteria={"exercises_completed": 3},
         )
+
 
 class PathManager:
     def __init__(self):
@@ -52,7 +57,7 @@ class PathManager:
         beginner = BeginnerPaths()
         paths = [
             beginner.create_basic_workflow_path(),
-            beginner.create_branching_basics_path()
+            beginner.create_branching_basics_path(),
         ]
         for path in paths:
             self.paths[path.name] = path
@@ -60,9 +65,10 @@ class PathManager:
     def get_path(self, name: str) -> Optional[LearningPath]:
         return self.paths.get(name)
 
-    def get_available_paths(self, completed_paths: List[str]) -> List['LearningPath']:
+    def get_available_paths(self, completed_paths: List[str]) -> List["LearningPath"]:
         return [
-            path for path in self.paths.values()
+            path
+            for path in self.paths.values()
             if all(prereq in completed_paths for prereq in path.prerequisites)
         ]
 
@@ -78,11 +84,11 @@ class PathManager:
         """Mark an exercise as completed in a path."""
         if path_name not in self.paths:
             return False
-            
+
         # Initialize progress tracking for path if not exists
         if path_name not in self.path_progress:
             self.path_progress[path_name] = []
-            
+
         if exercise_name not in self.path_progress[path_name]:
             self.path_progress[path_name].append(exercise_name)
             return True
@@ -94,13 +100,15 @@ class PathManager:
             return False
         path = self.paths[path_name]
         completed = len(self.path_progress[path_name])
-        required = path.completion_criteria.get('exercises_completed', 0)
+        required = path.completion_criteria.get("exercises_completed", 0)
         return completed >= required
 
     def is_exercise_completed(self, path_name: str, exercise_name: str) -> bool:
         """Check if a specific exercise in a path is completed."""
-        return (path_name in self.path_progress and 
-                exercise_name in self.path_progress[path_name])
+        return (
+            path_name in self.path_progress
+            and exercise_name in self.path_progress[path_name]
+        )
 
     def get_exercise_progress(self, path_name: str) -> List[str]:
         """Get list of completed exercises for a path."""

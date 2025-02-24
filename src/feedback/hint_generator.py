@@ -1,47 +1,89 @@
-from typing import List, Dict, Optional
 from dataclasses import dataclass
-from .categories import FeedbackCategory, ErrorLevel
+from typing import List, Dict, Optional
+from enum import Enum
+
+
+class HintLevel(Enum):
+    BASIC = "basic"
+    INTERMEDIATE = "intermediate"
+    ADVANCED = "advanced"
+
 
 @dataclass
 class HintContext:
     skill_level: str
-    attempt_count: int
-    error_history: List[str]
-    command_history: List[str]
+    attempts: int
+    error_type: str
+    command: Optional[str] = None
+    previous_hints: Optional[List[str]] = None
 
-class ProgressiveHintGenerator:
+
+class HintGenerator:  # Changed from ProgressiveHintGenerator
     def __init__(self):
-        self._hint_levels: Dict[str, List[List[str]]] = {
-            "init": [
-                ["First, initialize a Git repository using 'git init'"],
-                ["Make sure you're in the correct directory", "Check if .git folder exists"],
-                ["Consider using 'git status' to verify repository state"]
-            ],
-            "add": [
-                ["Use 'git add <filename>' to stage files"],
-                ["Try 'git status' to see which files can be staged"],
-                ["Consider using 'git add .' to stage all changes"]
-            ],
-            # Add more commands
+        self._hint_levels = {
+            HintLevel.BASIC: 0,
+            HintLevel.INTERMEDIATE: 1,
+            HintLevel.ADVANCED: 2,
+        }
+        self._hint_database: Dict[str, Dict[str, List[str]]] = {}
+        self._initialize_hints()
+
+    def _initialize_hints(self) -> None:
+        self._hint_database = {
+            "init": {
+                HintLevel.BASIC: [
+                    "Use 'git init' to create a repository",
+                    "Make sure you're in the right directory"
+                ],
+                HintLevel.INTERMEDIATE: [
+                    "Consider adding a .gitignore file",
+                    "Check the repository configuration"
+                ],
+                HintLevel.ADVANCED: [
+                    "Configure Git hooks for automation",
+                    "Set up repository templates"
+                ]
+            }
         }
 
-    def generate_hints(self, command: str, context: HintContext) -> List[str]:
-        """Generate progressive hints based on context."""
-        hints = self._hint_levels.get(command, [[]])[:]
-        
-        # Adjust hints based on skill level and attempts
-        if context.skill_level == "beginner":
-            max_hints = min(context.attempt_count, len(hints))
-            return [h for level in hints[:max_hints] for h in level]
-        elif context.skill_level == "intermediate":
-            return [h for level in hints[1:] for h in level]
-        else:  # advanced
-            return hints[-1] if hints else []
+    def generate_hints(self, error_type: str, context: HintContext) -> List[str]:
+        if error_type not in self._hint_database:
+            return ["No specific hints available for this error."]
 
-    def analyze_error_pattern(self, context: HintContext) -> Optional[str]:
-        """Analyze error history to identify patterns and provide specific guidance."""
-        if len(context.error_history) >= 3:
-            recent_errors = context.error_history[-3:]
-            if all(error == recent_errors[0] for error in recent_errors):
-                return "You seem to be stuck. Consider reviewing the Git documentation or trying a different approach."
-        return None
+        hints = []
+        if context.attempts >= 2:  # Show intermediate hints after 2 attempts
+            hints.extend(self._hint_database[error_type][HintLevel.INTERMEDIATE])
+        hints.extend(self._hint_database[error_type][HintLevel.BASIC])
+        
+        return hints
+
+    def _get_hint_level(self, skill_level: str, attempts: int) -> HintLevel:
+        if skill_level == "advanced" or attempts > 3:
+            return HintLevel.ADVANCED
+        elif skill_level == "intermediate" or attempts > 2:
+            return HintLevel.INTERMEDIATE
+        return HintLevel.BASIC
+
+    def get_hints(self, hints: List[str], context: HintContext) -> List[str]:
+        if not hints:
+            return []
+
+        level_index = self._get_level_index(context.skill_level)
+        max_hints = min(context.attempts + level_index, len(hints))
+        return hints[:max_hints]
+
+    def _get_level_index(self, skill_level: str) -> int:
+        try:
+            level = HintLevel(skill_level.lower())
+            return self._hint_levels.get(level, 0)
+        except ValueError:
+            return 0
+
+    def generate_hint(self):
+        return self.hint
+
+def another_method(self):
+    pass
+
+# Add alias for backward compatibility
+ProgressiveHintGenerator = HintGenerator

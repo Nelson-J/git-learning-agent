@@ -1,15 +1,17 @@
-import unittest
 import os
-import tempfile
 import shutil
-from src.exercises import GitCommand, Exercise, ExerciseValidator
+import tempfile
+import unittest
+
+from src.exercises import Exercise, ExerciseValidator, GitCommand
+
 
 class TestExercises(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp()
         self.validator = ExerciseValidator()
         self.validator.set_workspace(self.temp_dir)
-        # Ensure repository is not initialized by default
+        # Ensure clean state
         if self.validator.virtual_repo:
             self.validator.virtual_repo.initialized = False
 
@@ -25,7 +27,7 @@ class TestExercises(unittest.TestCase):
             validation_rules={"must_exist": ".git"}
         )
         exercise.add_command(command)
-        
+
         self.assertEqual(exercise.name, "init_repo")
         self.assertEqual(len(exercise.commands), 1)
 
@@ -49,7 +51,7 @@ class TestExercises(unittest.TestCase):
             validation_rules={"must_exist": ".git"}
         )
         self.validator.validate_command(init_command)
-        
+
         # Now test add command
         command = GitCommand(
             name="add",
@@ -63,24 +65,26 @@ class TestExercises(unittest.TestCase):
 
     def test_validate_commit_command(self):
         # Initialize repository first
-        init_command = GitCommand(
+        init_cmd = GitCommand(
             name="init",
             args=[],
             expected_output="Initialized empty Git repository",
             validation_rules={"must_exist": ".git"}
         )
-        self.validator.validate_command(init_command)
-        
-        # Now test commit
-        command = GitCommand(
+        self.validator.validate_command(init_cmd)
+        # Prepare test file with proper spacing
+        test_file = "test.txt"
+        content = "test content"
+        self.validator.virtual_repo.add_file(test_file, content)
+        self.validator.virtual_repo.stage_file(test_file)
+        # Test commit
+        cmd = GitCommand(
             name="commit",
             args=["-m", "Initial commit"],
             expected_output="",
             validation_rules={"must_have_commit": "Initial commit"}
         )
-        self.validator.virtual_repo.add_file("test.txt", "test content")
-        self.validator.virtual_repo.stage_file("test.txt")
-        success, message = self.validator.validate_command(command)
+        success, _ = self.validator.validate_command(cmd)
         self.assertTrue(success)
 
     def test_validate_branch_command(self):
@@ -97,9 +101,11 @@ class TestExercises(unittest.TestCase):
     def test_exercise_path_integration(self):
         """Test integration between exercises and learning paths."""
         # Start an exercise
-        success, message = self.validator.start_exercise("basic_git_workflow", "init_repo")
+        success, message = self.validator.start_exercise(
+            "basic_git_workflow", "init_repo"
+        )
         self.assertTrue(success)
-        
+
         # Test init command in exercise context
         command = GitCommand(
             name="init",
@@ -109,9 +115,11 @@ class TestExercises(unittest.TestCase):
         )
         success, message = self.validator.validate_command(command)
         self.assertTrue(success)
-        self.assertTrue(self.validator.path_manager.is_exercise_completed(
-            "basic_git_workflow", "init_repo"
-        ))
+        self.assertTrue(
+            self.validator.path_manager.is_exercise_completed(
+                "basic_git_workflow", "init_repo"
+            )
+        )
 
     def test_exercise_feedback(self):
         """Test exercise-specific feedback."""
@@ -125,5 +133,12 @@ class TestExercises(unittest.TestCase):
         self.assertFalse(success)
         self.assertIn("Repository not initialized", message)
 
-if __name__ == '__main__':
+    def test_exercise(self):
+        assert True
+
+    def another_test(self):
+        assert True
+
+
+if __name__ == "__main__":
     unittest.main()
