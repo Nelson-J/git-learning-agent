@@ -47,25 +47,30 @@ class Exercise(Base):
     
     Attributes:
         id (str): Unique identifier for the exercise
+        exercise_id (str): Unique identifier for the exercise
         name (str): Name of the exercise
         description (str): Description of the exercise
-        difficulty (str): Difficulty level (beginner, intermediate, advanced)
-        commands (JSON): List of Git commands in the exercise
+        difficulty (str): Difficulty level of the exercise
+        commands (List[GitCommand]): List of Git commands for the exercise
+        steps (List[str]): List of steps to complete the exercise
         complex_scenario (JSON): Complex scenario data if applicable
         tags (JSON): Tags for categorizing the exercise
         skills (JSON): Skills practiced in this exercise
+        expected_output (Dict): Expected output for validation
     """
     __tablename__ = "exercises"
     
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    exercise_id = Column(String(50), unique=True, nullable=False)
+    exercise_id = Column(String(100), unique=True, nullable=False)
     name = Column(String(100), nullable=False)
     description = Column(String(1000), nullable=False)
     difficulty = Column(String(20), nullable=False)
     commands_data = Column(JSON, default=list)
+    steps = Column(JSON, default=list)
     complex_scenario_data = Column(JSON, nullable=True)
     tags = Column(JSON, default=list)
     skills = Column(JSON, default=list)
+    expected_output = Column(JSON, default=dict)
     order = Column(Integer, default=0)  # For ordering exercises in learning paths
     
     # Relationships
@@ -73,32 +78,36 @@ class Exercise(Base):
     
     def __init__(
         self,
+        exercise_id: str,
         name: str,
         description: str,
-        difficulty: str,
-        exercise_id: str = None,
+        difficulty: str = "beginner",
         commands: List[GitCommand] = None,
         complex_scenario: Optional[ComplexScenario] = None,
         tags: List[str] = None,
         skills: List[str] = None,
+        steps: List[str] = None,
+        expected_output: Dict = None,
         order: int = 0
     ):
         """
         Initialize a new exercise.
         
         Args:
+            exercise_id (str): Unique identifier for the exercise
             name (str): Name of the exercise
             description (str): Description of the exercise
-            difficulty (str): Difficulty level
-            exercise_id (str, optional): Unique identifier for the exercise
+            difficulty (str, optional): Difficulty level
             commands (List[GitCommand], optional): List of Git commands
             complex_scenario (ComplexScenario, optional): Complex scenario data
             tags (List[str], optional): Tags for categorizing the exercise
             skills (List[str], optional): Skills practiced in this exercise
+            steps (List[str], optional): List of steps to complete the exercise
+            expected_output (Dict, optional): Expected output for validation
             order (int, optional): Order in the learning path
         """
         self.id = str(uuid.uuid4())
-        self.exercise_id = exercise_id or self.id
+        self.exercise_id = exercise_id
         self.name = name
         self.description = description
         self.difficulty = difficulty
@@ -106,6 +115,8 @@ class Exercise(Base):
         self.complex_scenario_data = self._serialize_complex_scenario(complex_scenario)
         self.tags = tags or []
         self.skills = skills or []
+        self.steps = steps or []
+        self.expected_output = expected_output or {}
         self.order = order
     
     @property
@@ -274,6 +285,8 @@ class Exercise(Base):
             "complex_scenario": self.complex_scenario_data,
             "tags": self.tags,
             "skills": self.skills,
+            "steps": self.steps,
+            "expected_output": self.expected_output,
             "order": self.order
         }
     

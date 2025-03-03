@@ -20,16 +20,22 @@ class TestExercises(unittest.TestCase):
         shutil.rmtree(self.temp_dir)
 
     def test_exercise_creation(self):
-        exercise = Exercise("init_repo", "Initialize a Git repository", "beginner")
-        command = GitCommand(
-            name="init",
-            args=[],
-            expected_output="Initialized empty Git repository",
-            validation_rules={"must_exist": ".git"},
+        exercise = Exercise(
+            exercise_id="init_repo",
+            name="Initialize a Git repository",
+            description="Learn to initialize a Git repository",
+            difficulty="beginner",
+            commands=[
+                GitCommand(
+                    name="init",
+                    args=[],
+                    expected_output="Initialized empty Git repository",
+                    validation_rules={"must_exist": ".git"}
+                )
+            ]
         )
-        exercise.add_command(command)
 
-        self.assertEqual(exercise.name, "init_repo")
+        self.assertEqual(exercise.exercise_id, "init_repo")
         self.assertEqual(len(exercise.commands), 1)
 
     def test_validate_init_command(self):

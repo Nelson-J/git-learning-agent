@@ -201,186 +201,93 @@ class DatabaseOptimizer:
             session.delete(record)
 
     def get_user_by_username(self, username: str) -> Optional[UserProfile]:
-        """
-        Get a user by username.
-        
-        Args:
-            username (str): Username
-            
-        Returns:
-            Optional[UserProfile]: User profile or None if not found
-        """
+        """Get a user by username."""
         with self.session_scope() as session:
             return session.query(UserProfile).filter_by(username=username).first()
 
     def get_exercise_by_exercise_id(self, exercise_id: str) -> Optional[Exercise]:
-        """
-        Get an exercise by exercise_id.
-        
-        Args:
-            exercise_id (str): Exercise ID
-            
-        Returns:
-            Optional[Exercise]: Exercise or None if not found
-        """
+        """Get an exercise by exercise_id."""
         with self.session_scope() as session:
             return session.query(Exercise).filter_by(exercise_id=exercise_id).first()
 
     def get_exercises_by_difficulty(self, difficulty: str) -> List[Exercise]:
-        """
-        Get exercises by difficulty level.
-        
-        Args:
-            difficulty (str): Difficulty level
-            
-        Returns:
-            List[Exercise]: List of exercises
-        """
+        """Get exercises by difficulty level."""
         with self.session_scope() as session:
             return session.query(Exercise).filter_by(difficulty=difficulty).all()
 
     def get_user_progress(self, user_id: str) -> List[Progress]:
-        """
-        Get all progress records for a user.
-        
-        Args:
-            user_id (str): User ID
-            
-        Returns:
-            List[Progress]: List of progress records
-        """
+        """Get all progress records for a user."""
         with self.session_scope() as session:
             return session.query(Progress).filter_by(user_id=user_id).all()
 
     def get_exercise_progress(self, user_id: str, exercise_id: str) -> Optional[Progress]:
-        """
-        Get progress for a specific exercise and user.
-        
-        Args:
-            user_id (str): User ID
-            exercise_id (str): Exercise ID
-            
-        Returns:
-            Optional[Progress]: Progress record or None if not found
-        """
+        """Get progress for a specific exercise and user."""
         with self.session_scope() as session:
             return session.query(Progress).filter_by(
                 user_id=user_id, exercise_id=exercise_id
             ).first()
 
     def get_completed_exercises(self, user_id: str) -> List[Exercise]:
-        """
-        Get all completed exercises for a user.
-        
-        Args:
-            user_id (str): User ID
-            
-        Returns:
-            List[Exercise]: List of completed exercises
-        """
+        """Get all completed exercises for a user."""
         with self.session_scope() as session:
             completed_progress = session.query(Progress).filter_by(
                 user_id=user_id, status="completed"
             ).all()
-            
             exercise_ids = [p.exercise_id for p in completed_progress]
-            
             if not exercise_ids:
                 return []
-            
             return session.query(Exercise).filter(
                 Exercise.id.in_(exercise_ids)
             ).all()
 
     def get_next_exercises(self, user_id: str, count: int = 3) -> List[Exercise]:
-        """
-        Get recommended next exercises for a user.
-        
-        Args:
-            user_id (str): User ID
-            count (int, optional): Number of exercises to recommend
-            
-        Returns:
-            List[Exercise]: List of recommended exercises
-        """
+        """Get recommended next exercises for a user."""
         with self.session_scope() as session:
-            # Get user's skill level
             user = session.query(UserProfile).filter_by(id=user_id).first()
-            
             if not user:
                 return []
-            
-            # Get completed exercise IDs
             completed_progress = session.query(Progress).filter_by(
                 user_id=user_id, status="completed"
             ).all()
-            
             completed_exercise_ids = [p.exercise_id for p in completed_progress]
-            
-            # Query for exercises matching the user's skill level
-            # that haven't been completed yet
             query = session.query(Exercise).filter_by(
                 difficulty=user.skill_level
             )
-            
             if completed_exercise_ids:
                 query = query.filter(~Exercise.id.in_(completed_exercise_ids))
-            
-            # Order by exercise order and limit to requested count
             return query.order_by(Exercise.order).limit(count).all()
 
     def get_user_statistics(self, user_id: str) -> Dict[str, Any]:
-        """
-        Get statistics for a user.
-        
-        Args:
-            user_id (str): User ID
-            
-        Returns:
-            Dict[str, Any]: User statistics
-        """
+        """Get statistics for a user."""
         with self.session_scope() as session:
-            # Get user profile
             user = session.query(UserProfile).filter_by(id=user_id).first()
-            
             if not user:
                 return {}
-            
-            # Get progress records
             progress_records = session.query(Progress).filter_by(user_id=user_id).all()
-            
-            # Calculate statistics
             completed_count = sum(1 for p in progress_records if p.status == "completed")
             in_progress_count = sum(1 for p in progress_records if p.status == "in_progress")
             failed_count = sum(1 for p in progress_records if p.status == "failed")
-            
             total_time = sum(p.time_spent for p in progress_records)
             avg_score = sum(p.score for p in progress_records if p.status == "completed")
-            
             if completed_count > 0:
                 avg_score /= completed_count
             else:
                 avg_score = 0.0
-            
-            # Get counts by difficulty
             beginner_count = session.query(func.count(Progress.id)).join(Exercise).filter(
                 Progress.user_id == user_id,
                 Progress.status == "completed",
                 Exercise.difficulty == "beginner"
             ).scalar() or 0
-            
             intermediate_count = session.query(func.count(Progress.id)).join(Exercise).filter(
                 Progress.user_id == user_id,
                 Progress.status == "completed",
                 Exercise.difficulty == "intermediate"
             ).scalar() or 0
-            
             advanced_count = session.query(func.count(Progress.id)).join(Exercise).filter(
                 Progress.user_id == user_id,
                 Progress.status == "completed",
                 Exercise.difficulty == "advanced"
             ).scalar() or 0
-            
             return {
                 "user_id": user_id,
                 "username": user.username,
@@ -397,10 +304,5 @@ class DatabaseOptimizer:
             }
 
 def get_db_optimizer() -> DatabaseOptimizer:
-    """
-    Get a database optimizer instance.
-    
-    Returns:
-        DatabaseOptimizer: Database optimizer instance
-    """
+    """Get a database optimizer instance."""
     return DatabaseOptimizer()

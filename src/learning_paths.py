@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import List, Dict, Optional
-from .models import Exercise
+from .models import Exercise, GitCommand, ComplexScenario
 from collections import defaultdict
 
 @dataclass
@@ -27,24 +27,44 @@ class BeginnerPaths:
                     name="Initialize your first Git repository",
                     description="Learn how to initialize a Git repository",
                     difficulty="beginner",
-                    steps=["git init"],
-                    expected_output={"status": "success"}
+                    commands=[GitCommand(
+                        name="init",
+                        args=[],
+                        expected_output="Initialized empty Git repository",
+                        validation_rules={"status": "success"}
+                    )]
                 ),
                 Exercise(
                     exercise_id="first_commit",
                     name="Make your first commit",
                     description="Learn how to commit changes",
                     difficulty="beginner",
-                    steps=["git add .", "git commit"],
-                    expected_output={"status": "success"}
+                    commands=[
+                        GitCommand(
+                            name="add",
+                            args=["."],
+                            expected_output="",
+                            validation_rules={"status": "success"}
+                        ),
+                        GitCommand(
+                            name="commit",
+                            args=["-m", "Initial commit"],
+                            expected_output="",
+                            validation_rules={"status": "success"}
+                        )
+                    ]
                 ),
                 Exercise(
                     exercise_id="view_history",
                     name="View your commit history",
                     description="Learn how to view commit history",
                     difficulty="beginner",
-                    steps=["git log"],
-                    expected_output={"status": "success"}
+                    commands=[GitCommand(
+                        name="log",
+                        args=[],
+                        expected_output="commit",
+                        validation_rules={"status": "success"}
+                    )]
                 ),
             ],
             completion_criteria={"exercises_completed": 3},
@@ -63,27 +83,101 @@ class BeginnerPaths:
                     name="Create your first branch",
                     description="Learn to create a new branch",
                     difficulty="beginner",
-                    steps=["git branch feature", "git checkout feature"],
-                    expected_output={"status": "success"}
+                    commands=[
+                        GitCommand(
+                            name="branch",
+                            args=["feature"],
+                            expected_output="",
+                            validation_rules={"status": "success"}
+                        ),
+                        GitCommand(
+                            name="checkout",
+                            args=["feature"],
+                            expected_output="Switched to branch 'feature'",
+                            validation_rules={"status": "success"}
+                        )
+                    ]
                 ),
                 Exercise(
                     exercise_id="switch_branch",
                     name="Switch between branches",
                     description="Learn to switch branches",
                     difficulty="beginner",
-                    steps=["git checkout main", "git checkout feature"],
-                    expected_output={"status": "success"}
+                    commands=[
+                        GitCommand(
+                            name="checkout",
+                            args=["main"],
+                            expected_output="Switched to branch 'main'",
+                            validation_rules={"status": "success"}
+                        ),
+                        GitCommand(
+                            name="checkout",
+                            args=["feature"],
+                            expected_output="Switched to branch 'feature'",
+                            validation_rules={"status": "success"}
+                        )
+                    ]
                 ),
                 Exercise(
                     exercise_id="merge_branch",
                     name="Merge your first branch",
                     description="Learn to merge branches",
                     difficulty="beginner",
-                    steps=["git checkout main", "git merge feature"],
-                    expected_output={"status": "success"}
+                    commands=[
+                        GitCommand(
+                            name="checkout",
+                            args=["main"],
+                            expected_output="Switched to branch 'main'",
+                            validation_rules={"status": "success"}
+                        ),
+                        GitCommand(
+                            name="merge",
+                            args=["feature"],
+                            expected_output="Fast-forward",
+                            validation_rules={"status": "success"}
+                        )
+                    ]
                 ),
             ],
             completion_criteria={"exercises_completed": 3},
+        )
+
+
+class IntermediatePaths:
+    @staticmethod
+    def create_intermediate_workflow_path() -> LearningPath:
+        return LearningPath(
+            name="intermediate_git_workflow",
+            description="Learn the intermediate Git workflow with rebase and merge",
+            difficulty="intermediate",
+            prerequisites=["branching_basics"],
+            exercises=[
+                Exercise(
+                    exercise_id="rebase_workflow",
+                    name="Rebase workflow exercise",
+                    description="Practice interactive rebasing",
+                    difficulty="intermediate",
+                    commands=[
+                        GitCommand(
+                            name="rebase",
+                            args=["-i", "HEAD~3"],
+                            expected_output="Successfully rebased",
+                            validation_rules={"status": "success"}
+                        )
+                    ],
+                    complex_scenario=ComplexScenario(
+                        name="rebase_conflict",
+                        setup_commands=[
+                            GitCommand("commit", ["-m", "Commit 1"], "", {}),
+                            GitCommand("commit", ["-m", "Commit 2"], "", {})
+                        ],
+                        expected_resolution=[
+                            GitCommand("rebase", ["--continue"], "", {})
+                        ]
+                    )
+                ),
+            ],
+            completion_criteria={"exercises_completed": 1},
         )
 
 
@@ -95,9 +189,11 @@ class PathManager:
 
     def _initialize_paths(self):
         beginner = BeginnerPaths()
+        intermediate = IntermediatePaths()
         paths = [
             beginner.create_basic_workflow_path(),
             beginner.create_branching_basics_path(),
+            intermediate.create_intermediate_workflow_path(),
         ]
         for path in paths:
             self.add_path(path.name, path)

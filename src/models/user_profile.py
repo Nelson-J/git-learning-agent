@@ -7,6 +7,7 @@ including user information, skill level, and preferences.
 
 import uuid
 from datetime import datetime
+import pytz
 from sqlalchemy import Column, String, DateTime, Integer, Float, Boolean, JSON
 from sqlalchemy.orm import relationship
 
@@ -32,8 +33,8 @@ class UserProfile(Base):
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     username = Column(String(50), nullable=False, unique=True)
     email = Column(String(100), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    last_login = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(pytz.utc))
+    last_login = Column(DateTime, default=lambda: datetime.now(pytz.utc))
     skill_level = Column(String(20), default="beginner")
     completed_exercises = Column(Integer, default=0)
     skill_scores = Column(JSON, default=lambda: {
@@ -51,7 +52,7 @@ class UserProfile(Base):
     })
     
     # Relationships
-    progress = relationship("Progress", back_populates="user", cascade="all, delete-orphan")
+    progress = relationship("Progress", back_populates="user", cascade="save-update, merge, delete")
     
     def __init__(self, username, email=None, skill_level="beginner"):
         """
@@ -66,8 +67,8 @@ class UserProfile(Base):
         self.username = username
         self.email = email
         self.skill_level = skill_level
-        self.created_at = datetime.utcnow()
-        self.last_login = datetime.utcnow()
+        self.created_at = datetime.now(pytz.utc)
+        self.last_login = datetime.now(pytz.utc)
         self.completed_exercises = 0
         self.skill_scores = {
             "basic_commands": 0.0,
@@ -82,6 +83,11 @@ class UserProfile(Base):
             "exercise_type_preference": "guided",
             "theme": "default"
         }
+    
+    @property
+    def user_id(self) -> str:
+        """Get the user ID."""
+        return self.id
     
     def update_skill_level(self):
         """
@@ -142,7 +148,7 @@ class UserProfile(Base):
         Returns:
             datetime: The updated last login timestamp
         """
-        self.last_login = datetime.utcnow()
+        self.last_login = datetime.now(pytz.utc)
         return self.last_login
     
     def update_preference(self, preference_name, value):
@@ -160,6 +166,20 @@ class UserProfile(Base):
             self.preferences[preference_name] = value
         return self.preferences
     
+    def assess_skill(self, skill_list):
+        # Correct logic to assess skill
+        for skill in skill_list:
+            if skill in self.skill_scores:
+                # Assess the skill
+                pass
+
+    def adjust_difficulty(self, user_id, difficulty_list):
+        # Correct logic to adjust difficulty
+        for difficulty in difficulty_list:
+            if difficulty in self.preferences:
+                # Adjust the difficulty
+                pass
+
     def to_dict(self):
         """
         Convert the user profile to a dictionary.

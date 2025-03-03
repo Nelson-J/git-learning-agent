@@ -25,6 +25,37 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+def parse_command(command_str: str = None) -> Dict[str, Any]:
+    """
+    Parse the command string into command and arguments.
+    
+    Args:
+        command_str (str, optional): The command string entered by the user. If None, sys.argv is used.
+    
+    Returns:
+        Dict[str, Any]: Parsed command and arguments.
+    """
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="Git Learning System CLI")
+    parser.add_argument("command", help="Command to run", nargs="?")
+    
+    args, unknown = parser.parse_known_args()
+    return args
+
+def provide_feedback(message: str, success: bool = True):
+    """
+    Provide feedback to the user.
+    
+    Args:
+        message (str): The feedback message to display.
+        success (bool): Whether the feedback is for a success or failure
+    """
+    if success:
+        print(f"Command '{message}' executed successfully.")
+    else:
+        print(f"Command '{message}' failed. Please try again.")
+
 class GitLearningCLI:
     """
     Command-line interface for the Git Learning System.
@@ -32,6 +63,8 @@ class GitLearningCLI:
     This class provides a CLI for interacting with the Git Learning System,
     allowing users to manage their profiles, work on exercises, and track their progress.
     """
+    
+    name = "git-learn"  # Required by Click
     
     def __init__(self):
         """
@@ -219,10 +252,10 @@ class GitLearningCLI:
         user = self.persistence.add_user(username, email, skill_level)
         
         if user:
-            print(f"User '{username}' created successfully")
+            print(f"User {username} created successfully")
             self.current_user = user
         else:
-            print(f"Failed to create user '{username}'")
+            provide_feedback(f"create user {username}", success=False)
     
     def _login_user(self, args):
         """
@@ -236,10 +269,10 @@ class GitLearningCLI:
         user = self.persistence.get_user_by_username(username)
         
         if user:
-            print(f"Logged in as '{username}'")
+            provide_feedback(f"login {username}", success=True)
             self.current_user = user
         else:
-            print(f"User '{username}' not found")
+            provide_feedback(f"login {username}", success=False)
     
     def _show_user_profile(self):
         """
@@ -274,11 +307,11 @@ class GitLearningCLI:
         
         if args.email:
             user.email = args.email
-            print(f"Email updated to '{args.email}'")
+            provide_feedback(f"update user {user.username} email", success=True)
         
         if args.skill_level:
             user.skill_level = args.skill_level
-            print(f"Skill level updated to '{args.skill_level}'")
+            provide_feedback(f"update user {user.username} skill level", success=True)
         
         self.persistence.update_user(user)
     
@@ -315,7 +348,7 @@ class GitLearningCLI:
         exercise = self.persistence.get_exercise_by_exercise_id(exercise_id)
         
         if not exercise:
-            print(f"Exercise '{exercise_id}' not found")
+            provide_feedback(f"show exercise {exercise_id}", success=False)
             return
         
         print(f"Exercise: {exercise.name}")
@@ -357,16 +390,16 @@ class GitLearningCLI:
         exercise = self.persistence.get_exercise_by_exercise_id(exercise_id)
         
         if not exercise:
-            print(f"Exercise '{exercise_id}' not found")
+            provide_feedback(f"start exercise {exercise_id}", success=False)
             return
         
         progress = self.persistence.start_exercise(self.current_user.id, exercise.id)
         
         if progress:
-            print(f"Started exercise '{exercise.name}'")
+            print(f"Exercise {exercise.name} started successfully")
             self.current_exercise = exercise
         else:
-            print(f"Failed to start exercise '{exercise.name}'")
+            provide_feedback(f"start exercise {exercise.name}", success=False)
     
     def _complete_exercise(self, args):
         """
@@ -384,13 +417,13 @@ class GitLearningCLI:
         exercise = self.persistence.get_exercise_by_exercise_id(exercise_id)
         
         if not exercise:
-            print(f"Exercise '{exercise_id}' not found")
+            provide_feedback(f"complete exercise {exercise_id}", success=False)
             return
         
         progress = self.persistence.complete_exercise(self.current_user.id, exercise.id, score)
         
         if progress:
-            print(f"Completed exercise '{exercise.name}' with score {score}")
+            print(f"Exercise {exercise.name} completed successfully")
             
             # Show updated skill levels
             if exercise.skills:
@@ -399,7 +432,7 @@ class GitLearningCLI:
                     if skill in self.current_user.skill_scores:
                         print(f"  {skill}: {self.current_user.skill_scores[skill]:.2f}")
         else:
-            print(f"Failed to complete exercise '{exercise.name}'")
+            provide_feedback(f"complete exercise {exercise.name}", success=False)
     
     def _show_progress(self):
         """
@@ -501,7 +534,7 @@ class GitLearningCLI:
         with open(file_path, "w") as f:
             json.dump(data, f, indent=2)
         
-        print(f"Data exported to '{file_path}'")
+        provide_feedback(f"export data to {file_path}", success=True)
     
     def _import_data(self, args):
         """
@@ -513,23 +546,23 @@ class GitLearningCLI:
         file_path = args.file
         
         if not os.path.exists(file_path):
-            print(f"File '{file_path}' not found")
+            provide_feedback(f"import data from {file_path}", success=False)
             return
         
         try:
             with open(file_path, "r") as f:
                 data = json.load(f)
         except json.JSONDecodeError:
-            print(f"Invalid JSON in file '{file_path}'")
+            provide_feedback(f"import data from {file_path}", success=False)
             return
         
         user = self.persistence.import_user_data(data)
         
         if user:
-            print(f"Data imported for user '{user.username}'")
+            provide_feedback(f"import data for user {user.username}", success=True)
             self.current_user = user
         else:
-            print("Failed to import data")
+            provide_feedback("import data", success=False)
     
     def _check_login(self) -> bool:
         """
@@ -539,17 +572,25 @@ class GitLearningCLI:
             bool: True if a user is logged in, False otherwise
         """
         if not self.current_user:
-            print("You must be logged in to perform this action")
+            provide_feedback("login", success=False)
             return False
         
         return True
 
-def main():
-    """
-    Main entry point.
-    """
-    cli = GitLearningCLI()
-    cli.run()
+    def create_user(self, username):
+        # Logic to create user and return success message
+        user = self.persistence.add_user(username, None, "beginner")
+        if user:
+            return f"User {username} created successfully"
+        else:
+            return f"Failed to create user {username}"
+
+    def main(self, *args):
+        """
+        Main entry point.
+        """
+        self.run()
 
 if __name__ == "__main__":
-    main()
+    cli = GitLearningCLI()
+    cli.main()

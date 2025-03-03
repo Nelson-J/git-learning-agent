@@ -3,12 +3,16 @@ from ..models import Exercise, GitCommand
 
 
 def create_branch_exercise() -> Exercise:
+    commands = [
+        GitCommand(name="branch", args=["branching_basics"], expected_output="Branch created", validation_rules={}),
+        GitCommand(name="checkout", args=["-b", "branching_basics"], expected_output="Switched to a new branch", validation_rules={})
+    ]
     return Exercise(
         exercise_id="branching_basics",
-        name="branching_basics",
+        name="Branching Basics",
         description="Learn to create and manage branches",
         difficulty="intermediate",
-        steps=["git branch", "git checkout -b"],
+        commands=commands,
         expected_output={"status": "success"}
     )
 

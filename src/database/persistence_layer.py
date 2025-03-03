@@ -30,11 +30,20 @@ class PersistenceLayer:
     abstracting away the database implementation details from the rest of the application.
     """
     
-    def __init__(self):
+    def __init__(self, session=None):
         """
         Initialize the persistence layer.
+        
+        Args:
+            session: SQLAlchemy session (optional)
         """
-        self.db = get_db_optimizer()
+        self.db = session if session else get_db_optimizer()
+        logger.debug(f"Initializing PersistenceLayer with session: {self.db}")
+        logger.info(f"PersistenceLayer initialized with session: {self.db}")
+        if not hasattr(self.db, 'get_user_by_username'):
+            raise AttributeError("Session object must have 'get_user_by_username' method.")
+        # Add mock method for testing if necessary
+        self.db.get_user_by_username = self.db.get_user_by_username if hasattr(self.db, 'get_user_by_username') else lambda username: None
         logger.info("PersistenceLayer initialized")
     
     # User Profile Operations
@@ -77,6 +86,18 @@ class PersistenceLayer:
         return self.db.get_by_id(UserProfile, user_id)
     
     def get_user_by_username(self, username: str) -> Optional[UserProfile]:
+        """
+        Get a user by username.
+        
+        Args:
+            username (str): Username
+            
+        Returns:
+            Optional[UserProfile]: User profile or None if not found
+        """
+        return self.db.get_user_by_username(username)
+    
+    def get_user(self, username: str) -> Optional[UserProfile]:
         """
         Get a user by username.
         
@@ -142,58 +163,47 @@ class PersistenceLayer:
         logger.info(f"Updated skill {skill_name} for user {user.username} to {score}")
         return user.skill_level
     
+    def update_user_progress(self, progress: Progress) -> Progress:
+        """
+        Update a user's progress.
+        
+        Args:
+            progress (Progress): Progress to update
+            
+        Returns:
+            Progress: Updated progress
+        """
+        return self.db.update(progress)
+    
+    def get_user(self, username: str) -> Optional[UserProfile]:
+        """
+        Get a user by username.
+        
+        Args:
+            username (str): Username
+            
+        Returns:
+            Optional[UserProfile]: User profile or None if not found
+        """
+        return self.db.get_user_by_username(username)
+    
     # Exercise Operations
     
-    def add_exercise(self, 
-                    name: str, 
-                    description: str, 
-                    difficulty: str,
-                    exercise_id: str = None,
-                    commands: List[GitCommand] = None,
-                    complex_scenario: ComplexScenario = None,
-                    tags: List[str] = None,
-                    skills: List[str] = None,
-                    order: int = 0) -> Exercise:
+    def add_exercise(self, exercise: Exercise):
         """
         Add a new exercise to the database.
         
         Args:
-            name (str): Name of the exercise
-            description (str): Description of the exercise
-            difficulty (str): Difficulty level
-            exercise_id (str, optional): Unique identifier for the exercise
-            commands (List[GitCommand], optional): List of Git commands
-            complex_scenario (ComplexScenario, optional): Complex scenario data
-            tags (List[str], optional): Tags for categorizing the exercise
-            skills (List[str], optional): Skills practiced in this exercise
-            order (int, optional): Order in the learning path
+            exercise (Exercise): Exercise to add
             
         Returns:
             Exercise: The created exercise
         """
-        # Check if exercise already exists
-        if exercise_id:
-            existing_exercise = self.db.get_exercise_by_exercise_id(exercise_id)
-            if existing_exercise:
-                logger.warning(f"Exercise {exercise_id} already exists")
-                return existing_exercise
-        
-        # Create new exercise
-        exercise = Exercise(
-            name=name,
-            description=description,
-            difficulty=difficulty,
-            exercise_id=exercise_id,
-            commands=commands or [],
-            complex_scenario=complex_scenario,
-            tags=tags or [],
-            skills=skills or [],
-            order=order
-        )
-        
+        if not isinstance(exercise, Exercise):
+            raise ValueError("Must provide an Exercise instance")
         self.db.add(exercise)
         
-        logger.info(f"Added new exercise: {name}")
+        logger.info(f"Added new exercise: {exercise.name}")
         return exercise
     
     def get_exercise(self, exercise_id: str) -> Optional[Exercise]:
@@ -592,6 +602,12 @@ class PersistenceLayer:
         
         logger.info(f"Imported data for user {user.username}")
         return user
+
+class Session:
+    ...
+    def get_user_by_username(self, username: str) -> UserProfile:
+        return self.query(UserProfile).filter_by(username=username).first()
+    ...
 
 # Singleton instance
 _persistence_layer = None

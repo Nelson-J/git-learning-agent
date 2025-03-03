@@ -3,7 +3,7 @@ Progress model for the Git Learning System.
 
 This module defines the SQLAlchemy model for tracking user progress on exercises,
 including completion status, timestamps, and performance metrics.
-"""
+""" 
 
 import uuid
 from datetime import datetime
@@ -23,6 +23,7 @@ class Progress(Base):
         status (str): Current status (not_started, in_progress, completed, failed)
         started_at (datetime): When the exercise was started
         completed_at (datetime): When the exercise was completed
+        last_attempt (datetime): Timestamp of the last attempt
         attempts (int): Number of attempts made
         time_spent (float): Time spent on the exercise in seconds
         score (float): Score achieved (0.0 to 1.0)
@@ -37,6 +38,7 @@ class Progress(Base):
     status = Column(String(20), default="not_started")
     started_at = Column(DateTime, default=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
+    last_attempt = Column(DateTime, default=datetime.utcnow)
     attempts = Column(Float, default=0)
     time_spent = Column(Float, default=0.0)
     score = Column(Float, default=0.0)
@@ -51,7 +53,8 @@ class Progress(Base):
         self,
         user_id: str,
         exercise_id: str,
-        status: str = "not_started"
+        status: str = "not_started",
+        last_attempt: datetime = None
     ):
         """
         Initialize a new progress record.
@@ -60,12 +63,14 @@ class Progress(Base):
             user_id (str): ID of the user
             exercise_id (str): ID of the exercise
             status (str, optional): Initial status
+            last_attempt (datetime, optional): Timestamp of the last attempt
         """
         self.id = str(uuid.uuid4())
         self.user_id = user_id
         self.exercise_id = exercise_id
         self.status = status
         self.started_at = datetime.utcnow()
+        self.last_attempt = last_attempt or datetime.utcnow()
         self.attempts = 0
         self.time_spent = 0.0
         self.score = 0.0
@@ -204,12 +209,21 @@ class Progress(Base):
             "status": self.status,
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "last_attempt": self.last_attempt.isoformat() if self.last_attempt else None,
             "attempts": self.attempts,
             "time_spent": self.time_spent,
             "score": self.score,
             "mistakes": self.mistakes,
             "feedback": self.feedback
         }
+    
+    def update_progress(self, completed: bool = False):
+        """Update progress status."""
+        if completed:
+            self.status = "completed"
+            self.completed_at = datetime.utcnow()
+        else:
+            self.status = "in_progress"
     
     def __repr__(self):
         return f"<Progress(user_id='{self.user_id}', exercise_id='{self.exercise_id}', status='{self.status}')>"

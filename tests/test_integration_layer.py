@@ -3,7 +3,8 @@ from unittest.mock import Mock, patch
 from datetime import datetime
 
 from src.integration_layer import IntegrationLayer
-from src.models import UserProfile, Exercise, Progress
+from src.models import UserProfile, Exercise, Progress, GitCommand, ComplexScenario
+from src.learning_paths import PathManager
 
 # Register integration mark properly
 def pytest_configure(config):
@@ -18,11 +19,9 @@ def integration_layer():
 @pytest.fixture
 def mock_user_profile():
     return UserProfile(
-        user_id="test_user",
         username="testuser",
         email="test@example.com",
-        skill_level="beginner",
-        created_at=datetime.now()
+        skill_level="beginner"
     )
 
 @pytest.fixture
@@ -32,8 +31,14 @@ def mock_exercise():
         name="Basic Git Init",
         difficulty="beginner",
         description="Initialize a new Git repository",
-        steps=["git init"],  # Changed from validation_rules to steps
-        expected_output="Initialized empty Git repository"
+        commands=[
+            GitCommand(
+                name="init",
+                args=[],
+                expected_output="Initialized empty Git repository",
+                validation_rules={"status": "success"}
+            )
+        ]
     )
 
 class TestIntegrationLayer:
@@ -142,16 +147,16 @@ class TestIntegrationLayer:
                     assert integration_layer.initialize_session(mock_user_profile)
                     # Test complete flow from initialization to progress update
                     command_result = integration_layer.process_command(
-                        user_id=mock_user_profile.user_id,
+                        user_id=mock_user_profile.username,
                         command="git",
                         args=["init"]
                     )
                     assert command_result["success"] in [True, False]
 
-                    next_exercise = integration_layer.get_next_exercise(mock_user_profile.user_id)
+                    next_exercise = integration_layer.get_next_exercise(mock_user_profile.username)
                     if next_exercise:
                         progress_result = integration_layer.update_progress(
-                            user_id=mock_user_profile.user_id,
+                            user_id=mock_user_profile.username,
                             exercise_id=next_exercise.exercise_id,
                             completed=True
                         )

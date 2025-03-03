@@ -112,16 +112,18 @@ class IntegrationLayer:
             logger.error(f"Error getting next exercise: {str(e)}")
             return None
 
-    def update_progress(self, user_id: str, exercise_id: str, completed: bool) -> bool:
-        """Update user progress and adjust learning path."""
+    def update_progress(self, user_id, exercise_id, completed):
         try:
-            progress = Progress(
-                user_id=user_id, exercise_id=exercise_id, completed=completed,
-                completed_at=datetime.now() if completed else None
-            )
+            progress = Progress(user_id=user_id, exercise_id=exercise_id)
+            progress.completed = completed
             if completed:
-                self.adaptive_learning.update_knowledge_space(user_id, exercise_id, 1.0)
-            self.spaced_repetition.process_response(f"{exercise_id}_{user_id}", 5 if completed else 2)
+                progress.completed_at = datetime.now()
+            progress.attempts += 1
+            progress.last_attempt = datetime.now()
+            
+            # Update the knowledge space in the adaptive learning component
+            self.adaptive_learning.update_knowledge_space(user_id, exercise_id, completed)
+            
             return True
         except Exception as e:
             logger.error(f"Error updating progress: {str(e)}")
