@@ -3,105 +3,62 @@ from ..models import Exercise, GitCommand
 
 
 def create_branch_exercise() -> Exercise:
-    exercise = Exercise(
+    return Exercise(
+        exercise_id="branching_basics",
         name="branching_basics",
         description="Learn to create and manage branches",
         difficulty="intermediate",
+        steps=["git branch", "git checkout -b"],
+        expected_output={"status": "success"}
     )
-
-    commands = [
-        GitCommand(
-            name="branch",
-            args=["feature"],
-            expected_output="",
-            validation_rules={"branch_exists": "feature"},
-        ),
-        GitCommand(
-            name="checkout",
-            args=["feature"],
-            expected_output="Switched to branch 'feature'",
-            validation_rules={"current_branch": "feature"},
-        ),
-    ]
-
-    for cmd in commands:
-        exercise.add_command(cmd)
-    return exercise
 
 
 def create_merge_exercise() -> Exercise:
+    steps = ["git checkout main", "git merge feature"]
+    commands = [
+        GitCommand(
+            name="merge",
+            args=["feature"],
+            expected_output="Merged feature branch",
+            validation_rules={"branch_merged": "true"}
+        )
+    ]
     exercise = Exercise(
+        exercise_id="merging_changes",
         name="merging_changes",
         description="Learn to merge changes between branches",
         difficulty="intermediate",
+        steps=steps,
+        expected_output={"status": "success"}
     )
-
-    setup_commands = [
-        GitCommand(
-            name="checkout",
-            args=["main"],
-            expected_output="Switched to branch 'main'",
-            validation_rules={"current_branch": "main"},
-        ),
-        GitCommand(
-            name="commit",
-            args=["-m", "Update main branch"],
-            expected_output="[main] Update main branch",
-            validation_rules={"has_commit_message": "Update main branch"},
-        ),
-        GitCommand(
-            name="checkout",
-            args=["feature"],
-            expected_output="Switched to branch 'feature'",
-            validation_rules={"current_branch": "feature"},
-        ),
-        GitCommand(
-            name="commit",
-            args=["-m", "Add feature changes"],
-            expected_output="[feature] Add feature changes",
-            validation_rules={"has_commit_message": "Add feature changes"},
-        ),
-    ]
-
-    merge_command = GitCommand(
-        name="merge",
-        args=["main"],
-        expected_output="Merge successful",
-        validation_rules={"branch_merged": "main", "has_merge_commit": True},
-    )
-
-    exercise.commands = setup_commands + [merge_command]
+    exercise.commands = commands
     return exercise
 
 
 def create_collaborative_exercise() -> Exercise:
-    exercise = Exercise(
-        name="team_collaboration",
-        description="Practice collaborative Git workflows",
-        difficulty="intermediate",
-    )
-
+    steps = ["git remote add origin url", "git push origin main", "git pull origin main"]
     commands = [
         GitCommand(
             name="remote",
-            args=["add", "origin", "https://github.com/example/repo.git"],
-            expected_output="remote 'origin' added",
-            validation_rules={"has_remote": "origin"},
-        ),
-        GitCommand(
-            name="fetch",
-            args=["origin"],
-            expected_output="Fetching origin",
-            validation_rules={"remote_fetched": "origin"},
+            args=["add", "origin"],
+            expected_output="Remote added",
+            validation_rules={}
         ),
         GitCommand(
             name="pull",
             args=["origin", "main"],
-            expected_output="Successfully pulled changes",
-            validation_rules={"branch_updated": "main"},
-        ),
+            expected_output="Changes pulled from remote",
+            validation_rules={}
+        )
     ]
-
+    exercise = Exercise(
+        exercise_id="team_collaboration",
+        name="team_collaboration",
+        description="Practice collaborative Git workflows",
+        difficulty="intermediate",
+        steps=steps,
+        expected_output={"status": "success"}
+    )
     exercise.commands = commands
     return exercise
 

@@ -27,11 +27,23 @@ class ReviewItem:
 class SpacedRepetitionSystem:
     def __init__(self):
         self._review_items: Dict[str, ReviewItem] = {}
-        self._minimum_interval = 1  # day
-        self._maximum_interval = 365  # days
-        self.items: Dict[str, Dict] = {}
+        self._user_data = {}
+        self._review_schedule = {}
+        self._minimum_interval = 1
+        self._maximum_interval = 365
         self.initial_interval = timedelta(days=1)
         self.ease_factor = 2.5
+        self.items = {}
+
+    def initialize_user(self, user_id: str) -> None:
+        """Initialize a new user in the spaced repetition system."""
+        if user_id not in self._user_data:
+            self._user_data[user_id] = {
+                "reviews": {},
+                "last_review": None,
+                "next_review": None
+            }
+            self._review_schedule[user_id] = []
 
     def add_item(self, concept_id: str) -> None:
         """Add a new item to the spaced repetition system."""
@@ -39,7 +51,7 @@ class SpacedRepetitionSystem:
         self._review_items[concept_id] = ReviewItem(
             concept_id=concept_id,
             last_review=now,
-            next_review=now,  # Set next_review to now to make it immediately due
+            next_review=now
         )
 
     def review_item(self, concept_id: str, quality: RecallQuality) -> timedelta:
@@ -82,14 +94,12 @@ class SpacedRepetitionSystem:
         """Get items due for review."""
         now = datetime.now()
         due_items = []
-
+        
+        # Check review items instead of schedule
         for concept_id, item in self._review_items.items():
-            # An item is due if:
-            # 1. It's the first review (last_review == next_review)
-            # 2. Its next review time has passed
-            if item.last_review == item.next_review or item.next_review <= now:
+            if item.next_review <= now:
                 due_items.append(concept_id)
-
+        
         return due_items
 
     def calculate_retention(self, concept_id: str) -> float:
@@ -160,11 +170,18 @@ class SpacedRepetitionSystem:
         else:
             item["repetitions"] += 1
             if item["repetitions"] == 1:
-                item["interval"] = self.initial_interval
+                item["interval"] = self.initial_interval * 1
             elif item["repetitions"] == 2:
                 item["interval"] = self.initial_interval * 6
             else:
                 item["interval"] = timedelta(days=math.ceil(item["interval"].days * item["ease_factor"]))
 
-        next_review = datetime.now() + item["interval"]
-        return next_review
+        return datetime.now() + item["interval"]
+
+
+def spaced_repetition_function():
+    # Spaced repetition code
+    pass
+
+
+# Additional code

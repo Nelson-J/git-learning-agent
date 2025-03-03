@@ -2,10 +2,12 @@ from dataclasses import dataclass
 from typing import List, Dict, Optional
 from enum import Enum
 
+
 class ProjectStatus(Enum):
     NOT_STARTED = "not_started"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
+
 
 @dataclass
 class Milestone:
@@ -13,6 +15,7 @@ class Milestone:
     description: str
     requirements: List[str]
     completed: bool = False
+
 
 @dataclass
 class ProjectScenario:
@@ -24,10 +27,11 @@ class ProjectScenario:
     collaboration_required: bool
     status: ProjectStatus = ProjectStatus.NOT_STARTED
 
+
 class ProjectBasedLearning:
     def __init__(self):
-        self.projects: Dict[str, ProjectScenario] = self._initialize_projects()
-        
+        self.projects = self._initialize_projects()
+
     def _initialize_projects(self) -> Dict[str, ProjectScenario]:
         return {
             "website-version-control": ProjectScenario(
@@ -37,10 +41,22 @@ class ProjectBasedLearning:
                 difficulty=1,
                 collaboration_required=False,
                 milestones=[
-                    Milestone("init", "Initialize the repository", ["git init"]),
-                    Milestone("first-commit", "Add HTML files", ["git add", "git commit"]),
-                    Milestone("feature-branch", "Create a new feature branch", ["git branch", "git checkout"]),
-                ]
+                    Milestone(
+                        id="init",
+                        description="Initialize the repository",
+                        requirements=["git init"],
+                    ),
+                    Milestone(
+                        id="first-commit",
+                        description="Add HTML files",
+                        requirements=["git add", "git commit"],
+                    ),
+                    Milestone(
+                        id="feature-branch",
+                        description="Create a new feature branch",
+                        requirements=["git branch", "git checkout"],
+                    ),
+                ],
             ),
             "team-collaboration": ProjectScenario(
                 id="team-001",
@@ -49,11 +65,23 @@ class ProjectBasedLearning:
                 difficulty=2,
                 collaboration_required=True,
                 milestones=[
-                    Milestone("clone", "Clone the team repository", ["git clone"]),
-                    Milestone("feature", "Develop new feature", ["git branch", "git push"]),
-                    Milestone("review", "Review and merge changes", ["git pull", "git merge"]),
-                ]
-            )
+                    Milestone(
+                        id="clone",
+                        description="Clone the team repository",
+                        requirements=["git clone"],
+                    ),
+                    Milestone(
+                        id="feature",
+                        description="Develop new feature",
+                        requirements=["git branch", "git push"],
+                    ),
+                    Milestone(
+                        id="review",
+                        description="Review and merge changes",
+                        requirements=["git pull", "git merge"],
+                    ),
+                ],
+            ),
         }
 
     def get_project(self, project_id: str) -> Optional[ProjectScenario]:
@@ -63,7 +91,7 @@ class ProjectBasedLearning:
         project = self.projects.get(project_id)
         if not project:
             return False
-        
+
         for milestone in project.milestones:
             if milestone.id == milestone_id:
                 milestone.completed = completed
@@ -80,4 +108,27 @@ class ProjectBasedLearning:
         project = self.projects.get(project_id)
         if not project:
             return False
-        return all(milestone.completed for milestone in project.milestones)
+        return (
+            all(milestone.completed for milestone in project.milestones)
+        )
+
+    def _create_initial_scenario(self) -> ProjectScenario:
+        return ProjectScenario(
+            description="Initial project setup with basic git commands",
+            collaboration_required=False,
+            milestones=[
+                Milestone(
+                    id="init",
+                    description="Initialize the repository",
+                    requirements=["git init"]
+                )
+            ]
+        )
+
+
+def project_based_learning_function():
+    # Project-based learning code
+    pass
+
+
+# Additional code

@@ -11,10 +11,12 @@ class TestModels(unittest.TestCase):
             user_id="1", username="test_user", email="test@example.com"
         )
         self.exercise = Exercise(
+            exercise_id="1",
             name="test_exercise",
             description="Test Exercise",
             difficulty="beginner",
-            exercise_id="1",
+            steps=["git init"],
+            expected_output={"status": "success"}
         )
         self.progress = Progress(
             user_id="1",

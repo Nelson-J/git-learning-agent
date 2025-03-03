@@ -2,8 +2,9 @@ import pytest
 import tempfile
 import shutil
 from typing import Generator
+from datetime import datetime
 
-from src.models import Exercise, GitCommand
+from src.models import Exercise, GitCommand, UserProfile
 from src.exercises import ExerciseValidator
 
 
@@ -39,3 +40,37 @@ def basic_exercise() -> Exercise:
     )
     exercise.add_command(command)
     return exercise
+
+
+def pytest_configure(config):
+    """Register custom markers."""
+    config.addinivalue_line(
+        "markers",
+        "integration: mark test as an integration test"
+    )
+
+
+@pytest.fixture
+def mock_exercise():
+    """Create a mock exercise for testing."""
+    return Exercise(
+        exercise_id="ex_001",
+        name="Basic Git Init",
+        difficulty="beginner",
+        description="Initialize a new Git repository",
+        steps=["git init"],
+        expected_output="Initialized empty Git repository",
+        created_at=datetime.now()
+    )
+
+
+@pytest.fixture
+def mock_user_profile():
+    """Create a mock user profile for testing."""
+    return UserProfile(
+        user_id="test_user",
+        username="testuser",
+        email="test@example.com",
+        skill_level="beginner",
+        created_at=datetime.now()
+    )

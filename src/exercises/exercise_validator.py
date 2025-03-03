@@ -61,7 +61,14 @@ class ExerciseValidator:
         return success, message
 
     def _get_feedback(self, error_type: str, context: Dict = None) -> str:
-        return self.feedback_manager.get_feedback(error_type, context or {})
+        feedback = self.feedback_manager.get_feedback(error_type, context or {})
+        if error_type == "no_files_specified":
+            feedback += " Please specify at least one file to add. For example, you can use 'git add <file_name>'."
+        elif error_type == "invalid_commit_format":
+            feedback += " Use the format: git commit -m 'message'. For example, you can use 'git commit -m 'Initial commit''."
+        elif error_type == "unsupported_command":
+            feedback += " Please refer to the help section for supported commands. You can use 'git help' to see the list of supported commands."
+        return feedback
 
     def _validate_init(self, command: GitCommand) -> Tuple[bool, str]:
         success = self.virtual_repo.init()
@@ -76,7 +83,6 @@ class ExerciseValidator:
         if not command.args:
             return False, self._get_feedback("no_files_specified")
 
-        # First add file to repo if it exists in workspace
         for file_path in command.args:
             full_path = os.path.join(self.workspace_path, file_path)
             if os.path.exists(full_path):
@@ -84,12 +90,11 @@ class ExerciseValidator:
                     content = f.read()
                 self.virtual_repo.add_file(file_path, content)
 
-        # Then stage the files
         all_staged = all(self.virtual_repo.stage_file(file) for file in command.args)
         return (
-            (True, "Files staged successfully")
+            (True, "Files staged successfully. You can now commit your changes.")
             if all_staged
-            else (False, "Failed to stage files")
+            else (False, "Failed to stage files. Please check the file paths.")
         )
 
     def _validate_commit(self, command: GitCommand) -> Tuple[bool, str]:
@@ -143,10 +148,9 @@ class ExerciseValidator:
         )
 
     def _validate_rebase(self, command: GitCommand) -> Tuple[bool, str]:
-        """Validate rebase command."""
         if not command.args:
             return False, "Target branch name required for rebase"
-            
+
         success = self.virtual_repo.rebase(command.args[0])
         return success, (
             f"Successfully rebased onto {command.args[0]}"
@@ -155,10 +159,9 @@ class ExerciseValidator:
         )
 
     def _validate_hook(self, command: GitCommand) -> Tuple[bool, str]:
-        """Validate hook configuration command."""
         if len(command.args) < 2 or not command.args[0].startswith("hooks."):
             return False, "Invalid hook configuration format"
-            
+
         hook_name = command.args[0].split(".")[1]
         script_content = command.args[1]
         success = self.virtual_repo.configure_hook(hook_name, script_content)
@@ -169,33 +172,29 @@ class ExerciseValidator:
         )
 
     def setup_complex_scenario(self, exercise: Exercise) -> Tuple[bool, str]:
-        """Set up a complex scenario for validation."""
         if not exercise.complex_scenario:
             return False, "No complex scenario defined"
-            
-        # Run setup commands
+
         for cmd in exercise.complex_scenario.setup_commands:
             success, _ = self.validate_command(cmd)
             if not success:
                 return False, "Failed to set up scenario"
-                
-        # Create conflicts if defined
+
         for file_path, versions in exercise.complex_scenario.conflict_files.items():
             self.virtual_repo.simulate_conflict(file_path, versions)
-            
+
         return True, "Complex scenario set up successfully"
 
     def validate_scenario_resolution(self, exercise: Exercise, commands: List[GitCommand]) -> Tuple[bool, str]:
-        """Validate the resolution of a complex scenario."""
         if not exercise.complex_scenario:
             return False, "No complex scenario to validate"
-            
+
         if self.virtual_repo.is_in_conflict():
             return False, "Conflicts not fully resolved"
-            
+
         is_valid = exercise.validate_scenario_resolution(commands)
         return is_valid, (
-            "Scenario resolved correctly" if is_valid 
+            "Scenario resolved correctly" if is_valid
             else "Scenario not resolved as expected"
         )
 
@@ -219,3 +218,18 @@ class ExerciseValidator:
         self, path_name: str, exercise_name: str
     ) -> Optional[Exercise]:
         return None  # TODO: Implement proper exercise lookup
+
+    def get_next_exercise(self):
+        return self.current_exercise
+
+    def validate_exercise(self):
+        # Some validation code
+        pass
+
+
+def validate_exercise():
+    # Validation code
+    pass
+
+
+# Additional code

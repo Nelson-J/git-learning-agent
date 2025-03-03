@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Dict, Optional
 from .models import Exercise
-
+from collections import defaultdict
 
 @dataclass
 class LearningPath:
@@ -23,10 +23,29 @@ class BeginnerPaths:
             prerequisites=[],
             exercises=[
                 Exercise(
-                    "init_repo", "Initialize your first Git repository", "beginner"
+                    exercise_id="init_repo",
+                    name="Initialize your first Git repository",
+                    description="Learn how to initialize a Git repository",
+                    difficulty="beginner",
+                    steps=["git init"],
+                    expected_output={"status": "success"}
                 ),
-                Exercise("first_commit", "Make your first commit", "beginner"),
-                Exercise("view_history", "View your commit history", "beginner"),
+                Exercise(
+                    exercise_id="first_commit",
+                    name="Make your first commit",
+                    description="Learn how to commit changes",
+                    difficulty="beginner",
+                    steps=["git add .", "git commit"],
+                    expected_output={"status": "success"}
+                ),
+                Exercise(
+                    exercise_id="view_history",
+                    name="View your commit history",
+                    description="Learn how to view commit history",
+                    difficulty="beginner",
+                    steps=["git log"],
+                    expected_output={"status": "success"}
+                ),
             ],
             completion_criteria={"exercises_completed": 3},
         )
@@ -39,9 +58,30 @@ class BeginnerPaths:
             difficulty="beginner",
             prerequisites=["basic_git_workflow"],
             exercises=[
-                Exercise("create_branch", "Create your first branch", "beginner"),
-                Exercise("switch_branch", "Switch between branches", "beginner"),
-                Exercise("merge_branch", "Merge your first branch", "beginner"),
+                Exercise(
+                    exercise_id="create_branch",
+                    name="Create your first branch",
+                    description="Learn to create a new branch",
+                    difficulty="beginner",
+                    steps=["git branch feature", "git checkout feature"],
+                    expected_output={"status": "success"}
+                ),
+                Exercise(
+                    exercise_id="switch_branch",
+                    name="Switch between branches",
+                    description="Learn to switch branches",
+                    difficulty="beginner",
+                    steps=["git checkout main", "git checkout feature"],
+                    expected_output={"status": "success"}
+                ),
+                Exercise(
+                    exercise_id="merge_branch",
+                    name="Merge your first branch",
+                    description="Learn to merge branches",
+                    difficulty="beginner",
+                    steps=["git checkout main", "git merge feature"],
+                    expected_output={"status": "success"}
+                ),
             ],
             completion_criteria={"exercises_completed": 3},
         )
@@ -50,7 +90,7 @@ class BeginnerPaths:
 class PathManager:
     def __init__(self):
         self.paths: Dict[str, LearningPath] = {}
-        self.path_progress: Dict[str, List[str]] = {}
+        self.path_progress = defaultdict(list)
         self._initialize_paths()
 
     def _initialize_paths(self):
@@ -60,12 +100,16 @@ class PathManager:
             beginner.create_branching_basics_path(),
         ]
         for path in paths:
-            self.paths[path.name] = path
+            self.add_path(path.name, path)
+
+    def add_path(self, path_name: str, path: LearningPath):
+        self.paths[path_name] = path
+        self.path_progress[path_name] = []  # Explicit initialization
 
     def get_path(self, name: str) -> Optional[LearningPath]:
         return self.paths.get(name)
 
-    def get_available_paths(self, completed_paths: List[str]) -> List["LearningPath"]:
+    def get_available_paths(self, completed_paths: List[str]) -> List[LearningPath]:
         return [
             path
             for path in self.paths.values()
@@ -73,7 +117,6 @@ class PathManager:
         ]
 
     def start_path(self, path_name: str) -> bool:
-        """Start tracking progress for a path."""
         if path_name not in self.paths:
             return False
         if path_name not in self.path_progress:
@@ -81,21 +124,16 @@ class PathManager:
         return True
 
     def complete_exercise(self, path_name: str, exercise_name: str) -> bool:
-        """Mark an exercise as completed in a path."""
         if path_name not in self.paths:
             return False
-
-        # Initialize progress tracking for path if not exists
         if path_name not in self.path_progress:
             self.path_progress[path_name] = []
-
         if exercise_name not in self.path_progress[path_name]:
             self.path_progress[path_name].append(exercise_name)
             return True
         return False
 
     def is_path_completed(self, path_name: str) -> bool:
-        """Check if a path is completed based on its criteria."""
         if path_name not in self.paths or path_name not in self.path_progress:
             return False
         path = self.paths[path_name]
@@ -104,12 +142,18 @@ class PathManager:
         return completed >= required
 
     def is_exercise_completed(self, path_name: str, exercise_name: str) -> bool:
-        """Check if a specific exercise in a path is completed."""
         return (
             path_name in self.path_progress
             and exercise_name in self.path_progress[path_name]
         )
 
     def get_exercise_progress(self, path_name: str) -> List[str]:
-        """Get list of completed exercises for a path."""
         return self.path_progress.get(path_name, [])
+
+
+def learning_paths_function():
+    # Learning paths code
+    pass
+
+
+# Additional code
