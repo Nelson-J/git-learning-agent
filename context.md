@@ -49,11 +49,11 @@ The system integrates multiple proven teaching methodologies:
 
 ### 3.1 Core Technologies
 - **Language**: Python 3.9+
-- **Database**: SQLite (development), PostgreSQL (production)
+- **Database**: SQLite (local storage)
 - **Dependency Management**: Poetry
 - **Testing Framework**: Pytest
 - **Continuous Integration**: GitHub Actions
-- **Deployment**: Heroku
+- **Deployment**: GitHub Releases
 - **Documentation**: Sphinx
 
 ### 3.2 Key Technical Requirements
@@ -96,12 +96,13 @@ The system tracks and analyzes:
 - CI/CD pipeline configuration
 - Environment configuration templates
 
-### 6.2 Heroku Deployment Requirements
-- Procfile configuration
-- Environment variable management
-- Database migration plans
-- Scaling considerations
-- Backup and recovery procedures
+### 6.2 GitHub Releases Deployment Strategy
+- Packaged executable for cross-platform distribution
+- Local SQLite database for user data persistence
+- User data storage in user's home directory
+- Automatic updates notification system
+- Offline-first functionality with optional cloud sync
+- Data import/export capabilities for backup and transfer
 
 ## 7. User Experience Goals
 
@@ -126,4 +127,4 @@ Technical Layer:          Educational Layer:         Integration Layer:
 - Software Architecture   - Learning Design          - Quality Assurance
 - NLP/AI Systems         - Assessment Methods       - Testing Strategy
 - System Integration     - Content Development     - Performance Validation
-The objective is to build a robust and effective learning system while ensuring seamless integration between various components and using simple reasoning (reasonable and not too compicated to implement).
+The objective is to build a robust and effective learning system while ensuring seamless integration between various components and using simple reasoning (reasonable and not too complicated to implement).
