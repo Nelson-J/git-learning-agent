@@ -64,6 +64,12 @@ class GitLearningCLI:
     allowing users to manage their profiles, work on exercises, and track their progress.
     """
     
+    def main(self, *args):
+        """
+        Main entry point.
+        """
+        self.run()
+
     name = "git-learn"  # Required by Click
     
     def __init__(self):
@@ -76,7 +82,7 @@ class GitLearningCLI:
         
         logger.info("GitLearningCLI initialized")
     
-    def run(self):
+    def run(self, args=None):
         """
         Run the CLI.
         """
@@ -151,7 +157,7 @@ class GitLearningCLI:
         import_parser.add_argument("file", help="Input file path")
         
         # Parse arguments
-        args = parser.parse_args()
+        args = parser.parse_args(args)
         
         # Check if a command was specified
         if not args.command:
@@ -584,12 +590,6 @@ class GitLearningCLI:
             return f"User {username} created successfully"
         else:
             return f"Failed to create user {username}"
-
-    def main(self, *args):
-        """
-        Main entry point.
-        """
-        self.run()
 
 if __name__ == "__main__":
     cli = GitLearningCLI()

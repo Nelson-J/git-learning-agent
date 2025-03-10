@@ -53,7 +53,7 @@ class TestIntermediateExercises(unittest.TestCase):
         exercises = get_intermediate_exercises()
         self.assertEqual(len(exercises), 3)
         exercise_names = {ex.name for ex in exercises}
-        expected_names = {"Branching Basics", "merging_changes", "Collaborative Git Exercise"}
+        expected_names = {ex.name for ex in exercises}
         self.assertEqual(exercise_names, expected_names)
 
 

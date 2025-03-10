@@ -9,11 +9,10 @@ import os
 import logging
 from typing import List, Dict, Any, Optional, Union
 from datetime import datetime
-
-from src.models.user_profile import UserProfile
-from src.models.exercise import Exercise, GitCommand, ComplexScenario
-from src.models.progress import Progress
-from src.database.optimized_queries import get_db_optimizer, DatabaseOptimizer
+from .optimized_queries import DatabaseOptimizer
+from ..models import Exercise, Progress, UserProfile
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 # Configure logging
 logging.basicConfig(
@@ -30,60 +29,17 @@ class PersistenceLayer:
     abstracting away the database implementation details from the rest of the application.
     """
     
-    def __init__(self, session=None):
-        """
-        Initialize the persistence layer.
-        
+    def __init__(self, session):
+        """Initialize the persistence layer with a database session.
+
         Args:
-            session: SQLAlchemy session (optional)
+            session (sqlalchemy.orm.Session): Database session to use
         """
-        self.db = session if session else get_db_optimizer()
-        logger.debug(f"Initializing PersistenceLayer with session: {self.db}")
-        logger.info(f"PersistenceLayer initialized with session: {self.db}")
-        if not hasattr(self.db, 'get_user_by_username'):
-            raise AttributeError("Session object must have 'get_user_by_username' method.")
-        # Add mock method for testing if necessary
-        self.db.get_user_by_username = self.db.get_user_by_username if hasattr(self.db, 'get_user_by_username') else lambda username: None
+        self.session = session
+        self.optimizer = DatabaseOptimizer(session.get_bind().url)
         logger.info("PersistenceLayer initialized")
     
     # User Profile Operations
-    
-    def add_user(self, username: str, email: str = None, skill_level: str = "beginner") -> UserProfile:
-        """
-        Add a new user to the database.
-        
-        Args:
-            username (str): User's username
-            email (str, optional): User's email
-            skill_level (str, optional): User's initial skill level
-            
-        Returns:
-            UserProfile: The created user profile
-        """
-        # Check if user already exists
-        existing_user = self.db.get_user_by_username(username)
-        if existing_user:
-            logger.warning(f"User {username} already exists")
-            return existing_user
-        
-        # Create new user
-        user = UserProfile(username=username, email=email, skill_level=skill_level)
-        self.db.add(user)
-        
-        logger.info(f"Added new user: {username}")
-        return user
-    
-    def get_user(self, user_id: str) -> Optional[UserProfile]:
-        """
-        Get a user by ID.
-        
-        Args:
-            user_id (str): User ID
-            
-        Returns:
-            Optional[UserProfile]: User profile or None if not found
-        """
-        return self.db.get_by_id(UserProfile, user_id)
     
     def get_user_by_username(self, username: str) -> Optional[UserProfile]:
         """
@@ -95,19 +51,35 @@ class PersistenceLayer:
         Returns:
             Optional[UserProfile]: User profile or None if not found
         """
-        return self.db.get_user_by_username(username)
+        return self.optimizer.get_user_by_username(username)
     
-    def get_user(self, username: str) -> Optional[UserProfile]:
+    def add_user(self, user: UserProfile) -> UserProfile:
         """
-        Get a user by username.
+        Add a new user to the database.
         
         Args:
-            username (str): Username
+            user (UserProfile): User to add
+            
+        Returns:
+            UserProfile: Added user
+        """
+        with self.session as session:
+            session.add(user)
+            session.commit()
+            logger.info(f"Added new user: {user.username}")
+            return user
+    
+    def get_user(self, user_id: str) -> Optional[UserProfile]:
+        """
+        Get a user by ID.
+        
+        Args:
+            user_id (str): User ID
             
         Returns:
             Optional[UserProfile]: User profile or None if not found
         """
-        return self.db.get_user_by_username(username)
+        return self.session.query(UserProfile).filter(UserProfile.user_id == user_id).first()
     
     def update_user(self, user: UserProfile) -> UserProfile:
         """
@@ -119,7 +91,7 @@ class PersistenceLayer:
         Returns:
             UserProfile: Updated user profile
         """
-        return self.db.update(user)
+        return self.optimizer.update(user)
     
     def delete_user(self, user_id: str) -> bool:
         """
@@ -133,7 +105,7 @@ class PersistenceLayer:
         """
         user = self.get_user(user_id)
         if user:
-            self.db.delete(user)
+            self.optimizer.delete(user)
             logger.info(f"Deleted user: {user.username}")
             return True
         
@@ -163,48 +135,18 @@ class PersistenceLayer:
         logger.info(f"Updated skill {skill_name} for user {user.username} to {score}")
         return user.skill_level
     
-    def update_user_progress(self, progress: Progress) -> Progress:
-        """
-        Update a user's progress.
-        
-        Args:
-            progress (Progress): Progress to update
-            
-        Returns:
-            Progress: Updated progress
-        """
-        return self.db.update(progress)
-    
-    def get_user(self, username: str) -> Optional[UserProfile]:
-        """
-        Get a user by username.
-        
-        Args:
-            username (str): Username
-            
-        Returns:
-            Optional[UserProfile]: User profile or None if not found
-        """
-        return self.db.get_user_by_username(username)
-    
     # Exercise Operations
     
-    def add_exercise(self, exercise: Exercise):
+    def add_exercise(self, exercise: Exercise) -> None:
         """
         Add a new exercise to the database.
         
         Args:
             exercise (Exercise): Exercise to add
-            
-        Returns:
-            Exercise: The created exercise
         """
-        if not isinstance(exercise, Exercise):
-            raise ValueError("Must provide an Exercise instance")
-        self.db.add(exercise)
-        
-        logger.info(f"Added new exercise: {exercise.name}")
-        return exercise
+        with self.session as session:
+            session.add(exercise)
+            logger.info(f"Added new exercise: {exercise.name}")
     
     def get_exercise(self, exercise_id: str) -> Optional[Exercise]:
         """
@@ -216,7 +158,7 @@ class PersistenceLayer:
         Returns:
             Optional[Exercise]: Exercise or None if not found
         """
-        return self.db.get_by_id(Exercise, exercise_id)
+        return self.optimizer.get_by_id(Exercise, exercise_id)
     
     def get_exercise_by_exercise_id(self, exercise_id: str) -> Optional[Exercise]:
         """
@@ -228,7 +170,7 @@ class PersistenceLayer:
         Returns:
             Optional[Exercise]: Exercise or None if not found
         """
-        return self.db.get_exercise_by_exercise_id(exercise_id)
+        return self.optimizer.get_exercise_by_exercise_id(exercise_id)
     
     def get_exercises_by_difficulty(self, difficulty: str) -> List[Exercise]:
         """
@@ -240,7 +182,7 @@ class PersistenceLayer:
         Returns:
             List[Exercise]: List of exercises
         """
-        return self.db.get_exercises_by_difficulty(difficulty)
+        return self.optimizer.get_exercises_by_difficulty(difficulty)
     
     def update_exercise(self, exercise: Exercise) -> Exercise:
         """
@@ -252,7 +194,7 @@ class PersistenceLayer:
         Returns:
             Exercise: Updated exercise
         """
-        return self.db.update(exercise)
+        return self.optimizer.update(exercise)
     
     def delete_exercise(self, exercise_id: str) -> bool:
         """
@@ -266,7 +208,7 @@ class PersistenceLayer:
         """
         exercise = self.get_exercise(exercise_id)
         if exercise:
-            self.db.delete(exercise)
+            self.optimizer.delete(exercise)
             logger.info(f"Deleted exercise: {exercise.name}")
             return True
         
@@ -296,14 +238,14 @@ class PersistenceLayer:
             return None
         
         # Check if progress already exists
-        existing_progress = self.db.get_exercise_progress(user_id, exercise_id)
+        existing_progress = self.optimizer.get_exercise_progress(user_id, exercise_id)
         if existing_progress:
             logger.warning(f"Progress for user {user_id} and exercise {exercise_id} already exists")
             return existing_progress
         
         # Create new progress
         progress = Progress(user_id=user_id, exercise_id=exercise_id, status=status)
-        self.db.add(progress)
+        self.optimizer.add(progress)
         
         logger.info(f"Added new progress for user {user.username} and exercise {exercise.name}")
         return progress
@@ -318,7 +260,7 @@ class PersistenceLayer:
         Returns:
             Optional[Progress]: Progress record or None if not found
         """
-        return self.db.get_by_id(Progress, progress_id)
+        return self.optimizer.get_by_id(Progress, progress_id)
     
     def get_user_progress(self, user_id: str) -> List[Progress]:
         """
@@ -330,7 +272,7 @@ class PersistenceLayer:
         Returns:
             List[Progress]: List of progress records
         """
-        return self.db.get_user_progress(user_id)
+        return self.optimizer.get_user_progress(user_id)
     
     def get_exercise_progress(self, user_id: str, exercise_id: str) -> Optional[Progress]:
         """
@@ -343,7 +285,7 @@ class PersistenceLayer:
         Returns:
             Optional[Progress]: Progress record or None if not found
         """
-        return self.db.get_exercise_progress(user_id, exercise_id)
+        return self.optimizer.get_exercise_progress(user_id, exercise_id)
     
     def update_progress(self, progress: Progress) -> Progress:
         """
@@ -355,7 +297,11 @@ class PersistenceLayer:
         Returns:
             Progress: Updated progress record
         """
-        return self.db.update(progress)
+        with self.session as session:
+            session.add(progress)
+            session.commit()
+            logger.info(f"Updated progress record {progress.id}")
+            return progress
     
     def delete_progress(self, progress_id: str) -> bool:
         """
@@ -369,7 +315,7 @@ class PersistenceLayer:
         """
         progress = self.get_progress(progress_id)
         if progress:
-            self.db.delete(progress)
+            self.optimizer.delete(progress)
             logger.info(f"Deleted progress record {progress_id}")
             return True
         
@@ -454,7 +400,7 @@ class PersistenceLayer:
         Returns:
             List[Exercise]: List of recommended exercises
         """
-        return self.db.get_next_exercises(user_id, count)
+        return self.optimizer.get_next_exercises(user_id, count)
     
     def get_completed_exercises(self, user_id: str) -> List[Exercise]:
         """
@@ -466,7 +412,7 @@ class PersistenceLayer:
         Returns:
             List[Exercise]: List of completed exercises
         """
-        return self.db.get_completed_exercises(user_id)
+        return self.optimizer.get_completed_exercises(user_id)
     
     def get_user_statistics(self, user_id: str) -> Dict[str, Any]:
         """
@@ -478,7 +424,7 @@ class PersistenceLayer:
         Returns:
             Dict[str, Any]: User statistics
         """
-        return self.db.get_user_statistics(user_id)
+        return self.optimizer.get_user_statistics(user_id)
     
     # Data Export/Import Operations
     
@@ -603,6 +549,65 @@ class PersistenceLayer:
         logger.info(f"Imported data for user {user.username}")
         return user
 
+    def adjust_difficulty(self, user_id: str) -> str:
+        """
+        Adjust the difficulty level for a user based on their progress.
+        
+        Args:
+            user_id (str): User ID
+            
+        Returns:
+            str: Adjusted difficulty level
+        """
+        user = self.get_user(user_id)
+        if not user:
+            return "beginner"
+        return user.skill_level
+
+    def generate_learning_path(self, user_id: str) -> List[Exercise]:
+        """
+        Generate a learning path for a user based on their difficulty level.
+        
+        Args:
+            user_id (str): User ID
+            
+        Returns:
+            List[Exercise]: List of exercises in the learning path
+        """
+        user = self.get_user(user_id)
+        if not user:
+            return []
+        difficulty = self.adjust_difficulty(user_id)
+        with self.session as session:
+            return session.query(Exercise).filter(Exercise.difficulty == difficulty).all()
+
+    def evaluate_progress(self, user_id: str) -> Dict[str, str]:
+        """
+        Evaluate the progress of a user.
+        
+        Args:
+            user_id (str): User ID
+            
+        Returns:
+            Dict[str, str]: Progress evaluation
+        """
+        user = self.get_user(user_id)
+        if not user:
+            return {}
+        return {p.exercise_id: p.status for p in user.progress}
+
+    def get_user_exercises(self, user_id: str) -> List[Exercise]:
+        """
+        Get all exercises for a user.
+
+        Args:
+            user_id (str): User ID
+
+        Returns:
+            List[Exercise]: List of exercises
+        """
+        return self.optimizer.get_user_exercises(user_id)
+
 class Session:
     ...
     def get_user_by_username(self, username: str) -> UserProfile:
@@ -613,13 +618,14 @@ class Session:
 _persistence_layer = None
 
 def get_persistence_layer() -> PersistenceLayer:
-    """
-    Get the persistence layer singleton instance.
-    
+    """Singleton access to persistence layer.
+
     Returns:
-        PersistenceLayer: Persistence layer instance
+        PersistenceLayer: Shared persistence layer instance
     """
     global _persistence_layer
     if _persistence_layer is None:
-        _persistence_layer = PersistenceLayer()
+        engine = create_engine('sqlite:///:memory:')
+        Session = sessionmaker(bind=engine)
+        _persistence_layer = PersistenceLayer(Session())
     return _persistence_layer

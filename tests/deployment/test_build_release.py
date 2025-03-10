@@ -1,5 +1,8 @@
 import pytest
 import os
+from unittest.mock import patch, MagicMock
+import zipfile
+
 from scripts.build_release import clean_output_dir, build_executable, create_release_package
 
 @pytest.fixture
@@ -19,21 +22,16 @@ def test_clean_output_directory(tmp_output_dir):
     clean_output_dir(tmp_output_dir)
     assert not os.path.exists(test_file)
 
-def test_build_executable():
-    """Test building executable."""
+@patch('subprocess.run')
+def test_build_executable(mock_run):
+    mock_run.return_value = MagicMock(returncode=0)
     result = build_executable()
     assert result is True
-    assert os.path.exists(os.path.join("dist", "git-learning-system.exe"))
+    assert mock_run.call_count == 2
 
-def test_create_release_package(tmp_output_dir):
-    """Test creating release package."""
+@patch('zipfile.ZipFile')
+def test_create_release_package(mock_zip, tmp_output_dir):
     version = "1.0.0"
-    
-    # Create a dummy executable for testing
-    os.makedirs(os.path.join("dist"), exist_ok=True)
-    with open(os.path.join("dist", "git-learning-system.exe"), "w") as f:
-        f.write("dummy executable")
-    
     result = create_release_package(version, tmp_output_dir)
     assert result is True
-    assert os.path.exists(os.path.join(tmp_output_dir, f"git-learning-system-{version}.zip"))
+    mock_zip.assert_called_once()

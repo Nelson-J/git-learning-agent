@@ -1,6 +1,7 @@
 from typing import List, Dict, Optional
 from datetime import datetime
 from dataclasses import dataclass, field
+import uuid
 
 
 @dataclass
@@ -60,16 +61,22 @@ class Progress:
 
 @dataclass
 class UserProfile:
-    user_id: str
     username: str
     email: str
     created_at: datetime = field(default_factory=datetime.now)
     skill_level: str = "beginner"
     progress: Dict[str, Progress] = field(default_factory=dict)
+    user_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    id: str = field(init=False)
+
+    def __post_init__(self):
+        self.id = self.user_id
 
     def assess_skill(self) -> int:
+        if not self.progress:
+            return 0
         total_skill = sum(p.assess_skill() for p in self.progress.values())
-        return total_skill // len(self.progress) if self.progress else 0
+        return total_skill // len(self.progress)
 
 
 class PersistenceLayer:
@@ -106,10 +113,12 @@ class PersistenceLayer:
         return exercises or []
 
     def evaluate_progress(self, user_id: str):
+        if user_id not in self.users:
+            return {}
         user = self.users[user_id]
         return {
-            progress.exercise_id: progress.status
-            for progress in user.progress.values()
+            exercise_id: progress.status
+            for exercise_id, progress in user.progress.items()
         }
 
 

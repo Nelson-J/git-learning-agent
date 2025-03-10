@@ -115,14 +115,18 @@ class IntegrationLayer:
     def update_progress(self, user_id, exercise_id, completed):
         try:
             progress = Progress(user_id=user_id, exercise_id=exercise_id)
-            progress.completed = completed
+            progress.update_progress(completed)
+
             if completed:
+                score = 1.0 
                 progress.completed_at = datetime.now()
+            else:
+                score = 0.0
             progress.attempts += 1
             progress.last_attempt = datetime.now()
             
             # Update the knowledge space in the adaptive learning component
-            self.adaptive_learning.update_knowledge_space(user_id, exercise_id, completed)
+            self.adaptive_learning.update_knowledge_space(user_id, exercise_id, score)
             
             return True
         except Exception as e:
