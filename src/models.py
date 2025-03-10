@@ -1,130 +1,99 @@
 from typing import List, Dict, Optional
 from datetime import datetime
-from dataclasses import dataclass, field
-import uuid
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey
+from sqlalchemy.orm import relationship
+from sqlalchemy.ext.declarative import declarative_base
 
+Base = declarative_base()
 
-@dataclass
-class GitCommand:
-    name: str
-    args: List[str]
-    expected_output: str
-    validation_rules: Dict[str, str]
+class GitCommand(Base):
+    __tablename__ = 'git_commands'
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+    args = Column(String)
+    expected_output = Column(String)
+    validation_rules = Column(String)
+    exercise_id = Column(Integer, ForeignKey('exercises.id'))
+    exercise = relationship('Exercise', backref='commands')
 
+class Exercise(Base):
+    __tablename__ = 'exercises'
+    id = Column(Integer, primary_key=True)
+    exercise_id = Column(String, unique=True)
+    name = Column(String)
+    description = Column(String)
+    difficulty = Column(String)
 
-class Exercise:
-    def __init__(
-        self,
-        exercise_id: str,
-        description: str = None,
-        steps: list = None,
-        expected_output: dict = None,
-        name: str = None,
-        difficulty: str = "beginner",
-    ):
-        self.exercise_id = exercise_id
-        self.name = name or exercise_id
-        self.description = description or ""
-        self.difficulty = difficulty
-        self.steps = steps or []
-        self.expected_output = expected_output or {"status": "success"}
-        self.commands = [
-            GitCommand(
-                name=step.split()[1],
-                args=step.split()[2:],
-                expected_output="",
-                validation_rules={},
-            )
-            for step in steps
-            if step.startswith("git ")
-        ] if steps else []
-
-    def add_command(self, command: GitCommand) -> None:
-        self.commands.append(command)
-
-
-@dataclass
-class Progress:
-    user_id: str
-    exercise_id: str
-    status: str = "in_progress"
-    completed: bool = False
-    completed_at: Optional[datetime] = None
-    attempts: int = 0
-    last_attempt: Optional[datetime] = None
+class Progress(Base):
+    __tablename__ = 'progress'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(String, ForeignKey('user_profiles.user_id'))
+    exercise_id = Column(String, ForeignKey('exercises.exercise_id'))
+    status = Column(String, default='in_progress')
+    completed = Column(Boolean, default=False)
+    completed_at = Column(DateTime)
+    attempts = Column(Integer, default=0)
+    last_attempt = Column(DateTime)
+    user = relationship('UserProfile', backref='progress')
+    exercise = relationship('Exercise', backref='progress')
 
     def assess_skill(self) -> int:
-        if self.status == "completed":
+        if self.status == 'completed':
             return 10
-        return 5
+        elif self.attempts > 0:
+            return min(5 + self.attempts, 9)
+        return 0
 
+    def __repr__(self):
+        return f'<Progress(user_id={self.user_id}, exercise_id={self.exercise_id}, status={self.status})>'
 
-@dataclass
-class UserProfile:
-    username: str
-    email: str
-    created_at: datetime = field(default_factory=datetime.now)
-    skill_level: str = "beginner"
-    progress: Dict[str, Progress] = field(default_factory=dict)
-    user_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    id: str = field(init=False)
-
-    def __post_init__(self):
-        self.id = self.user_id
-
-    def assess_skill(self) -> int:
-        if not self.progress:
-            return 0
-        total_skill = sum(p.assess_skill() for p in self.progress.values())
-        return total_skill // len(self.progress)
-
+class UserProfile(Base):
+    __tablename__ = 'user_profiles'
+    user_id = Column(String, primary_key=True)
+    username = Column(String)
+    email = Column(String)
+    created_at = Column(DateTime)
+    skill_level = Column(String)
 
 class PersistenceLayer:
-    def __init__(self):
-        self.users: Dict[str, UserProfile] = {}
-        self.exercises: Dict[str, Exercise] = {}
-        self.progress: Dict[str, Dict[str, Progress]] = {}
+    def __init__(self, session):
+        self.session = session
 
     def add_user(self, user: UserProfile) -> None:
-        self.users[user.user_id] = user
+        self.session.add(user)
+        self.session.commit()
 
     def add_exercise(self, exercise: Exercise):
-        self.exercises[exercise.exercise_id] = exercise
+        self.session.add(exercise)
+        self.session.commit()
 
     def update_progress(self, progress: Progress) -> None:
-        if progress.user_id not in self.progress:
-            self.progress[progress.user_id] = {}
-        self.progress[progress.user_id][progress.exercise_id] = progress
+        self.session.add(progress)
+        self.session.commit()
 
     def adjust_difficulty(self, user_id: str) -> str:
-        if user_id not in self.users:
+        if self.session.query(UserProfile).filter_by(user_id=user_id).first() is None:
             return "beginner"
         return "beginner"
 
     def generate_learning_path(self, user_id: str) -> List[Exercise]:
-        if user_id not in self.users:
+        if self.session.query(UserProfile).filter_by(user_id=user_id).first() is None:
             return []
         user_difficulty = self.adjust_difficulty(user_id)
-        exercises = [
-            exercise
-            for exercise in self.exercises.values()
-            if exercise.difficulty == user_difficulty
-        ]
+        exercises = self.session.query(Exercise).filter_by(difficulty=user_difficulty).all()
         return exercises or []
 
     def evaluate_progress(self, user_id: str):
-        if user_id not in self.users:
+        if self.session.query(UserProfile).filter_by(user_id=user_id).first() is None:
             return {}
-        user = self.users[user_id]
+        user = self.session.query(UserProfile).filter_by(user_id=user_id).first()
         return {
-            exercise_id: progress.status
-            for exercise_id, progress in user.progress.items()
+            progress.exercise_id: progress.assess_skill()
+            for progress in user.progress
         }
-
 
 def models_function():
     # Models code
     pass
-
 
 # Additional code

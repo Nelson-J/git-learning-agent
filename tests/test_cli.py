@@ -1,24 +1,27 @@
 import unittest
-from unittest.mock import patch
+from click.testing import CliRunner
 
-from src.cli import parse_command, provide_feedback
+from src.cli import cli
 
 
-class TestCLI(unittest.TestCase):
-    @patch("sys.argv", ["cli.py", "init"])
-    def test_parse_command(self):
-        args = parse_command()
-        self.assertEqual(args.command, "init")
+class TestClickCLI(unittest.TestCase):
+    def setUp(self):
+        self.runner = CliRunner()
 
-    @patch("builtins.print")
-    def test_provide_feedback_success(self, mock_print):
-        provide_feedback("init", True)
-        mock_print.assert_called_with("Command 'init' executed successfully.")
+    def test_cli_init_command(self):
+        result = self.runner.invoke(cli, ['init'])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn('Initialized new repository', result.output)
 
-    @patch("builtins.print")
-    def test_provide_feedback_failure(self, mock_print):
-        provide_feedback("init", False)
-        mock_print.assert_called_with("Command 'init' failed. Please try again.")
+    def test_cli_help_command(self):
+        result = self.runner.invoke(cli, ['--help'])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn('Show this message and exit', result.output)
+
+    def test_cli_invalid_command(self):
+        result = self.runner.invoke(cli, ['invalid'])
+        self.assertEqual(result.exit_code, 2)
+        self.assertIn('Error: No such command', result.output)
 
 
 if __name__ == "__main__":

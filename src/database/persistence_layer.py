@@ -81,6 +81,9 @@ class PersistenceLayer:
         """
         return self.session.query(UserProfile).filter(UserProfile.user_id == user_id).first()
     
+    def get_user(self, username: str):
+        return self.session.query(UserProfile).filter_by(username=username).first()
+    
     def update_user(self, user: UserProfile) -> UserProfile:
         """
         Update a user profile.
@@ -564,7 +567,7 @@ class PersistenceLayer:
             return "beginner"
         return user.skill_level
 
-    def generate_learning_path(self, user_id: str) -> List[Exercise]:
+    def generate_learning_path(self, user_id: str):
         """
         Generate a learning path for a user based on their difficulty level.
         
@@ -574,14 +577,12 @@ class PersistenceLayer:
         Returns:
             List[Exercise]: List of exercises in the learning path
         """
-        user = self.get_user(user_id)
+        user = self.session.query(UserProfile).filter_by(user_id=user_id).first()
         if not user:
             return []
-        difficulty = self.adjust_difficulty(user_id)
-        with self.session as session:
-            return session.query(Exercise).filter(Exercise.difficulty == difficulty).all()
+        return self.session.query(Exercise).filter_by(difficulty=user.skill_level).all()
 
-    def evaluate_progress(self, user_id: str) -> Dict[str, str]:
+    def evaluate_progress(self, user_id: str):
         """
         Evaluate the progress of a user.
         
@@ -591,7 +592,7 @@ class PersistenceLayer:
         Returns:
             Dict[str, str]: Progress evaluation
         """
-        user = self.get_user(user_id)
+        user = self.session.query(UserProfile).filter_by(user_id=user_id).first()
         if not user:
             return {}
         return {p.exercise_id: p.status for p in user.progress}

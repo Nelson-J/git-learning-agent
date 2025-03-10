@@ -7,10 +7,14 @@ including completion status, timestamps, and performance metrics.
 
 import uuid
 from datetime import datetime
+from datetime import timezone as tz
 from sqlalchemy import Column, String, DateTime, Boolean, Float, JSON, ForeignKey
 from sqlalchemy.orm import relationship
+import logging
 
 from src.database.init_db import Base
+
+logger = logging.getLogger(__name__)
 
 class Progress(Base):
     """
@@ -36,9 +40,9 @@ class Progress(Base):
     user_id = Column(String(36), ForeignKey("user_profiles.id"), nullable=False)
     exercise_id = Column(String(36), ForeignKey("exercises.id"), nullable=False)
     status = Column(String(20), default="not_started")
-    started_at = Column(DateTime, default=datetime.utcnow)
+    started_at = Column(DateTime, default=lambda: datetime.now(tz.utc))
     completed_at = Column(DateTime, nullable=True)
-    last_attempt = Column(DateTime, default=datetime.utcnow)
+    last_attempt = Column(DateTime, default=lambda: datetime.now(tz.utc))
     attempts = Column(Float, default=0)
     time_spent = Column(Float, default=0.0)
     score = Column(Float, default=0.0)
@@ -46,8 +50,8 @@ class Progress(Base):
     feedback = Column(JSON, default=dict)
     
     # Relationships
-    user = relationship("UserProfile", back_populates="progress")
-    exercise = relationship("Exercise", back_populates="progress")
+    user = relationship("UserProfile", back_populates="progress", cascade="all, delete-orphan", single_parent=True)
+    exercise = relationship("Exercise", back_populates="progress", cascade="all, delete-orphan", single_parent=True)
     
     def __init__(
         self,
@@ -65,12 +69,13 @@ class Progress(Base):
             status (str, optional): Initial status
             last_attempt (datetime, optional): Timestamp of the last attempt
         """
+        logger.info("Initializing Progress mapper")
         self.id = str(uuid.uuid4())
         self.user_id = user_id
         self.exercise_id = exercise_id
         self.status = status
-        self.started_at = datetime.utcnow()
-        self.last_attempt = last_attempt or datetime.utcnow()
+        self.started_at = datetime.now(tz.utc)
+        self.last_attempt = last_attempt or datetime.now(tz.utc)
         self.attempts = 0
         self.time_spent = 0.0
         self.score = 0.0
@@ -86,7 +91,7 @@ class Progress(Base):
         """
         if self.status == "not_started":
             self.status = "in_progress"
-            self.started_at = datetime.utcnow()
+            self.started_at = datetime.now(tz.utc)
         
         self.attempts += 1
         return self.started_at
@@ -102,7 +107,7 @@ class Progress(Base):
             datetime: The completion timestamp
         """
         self.status = "completed"
-        self.completed_at = datetime.utcnow()
+        self.completed_at = datetime.now(tz.utc)
         self.score = score
         
         # Calculate time spent
@@ -120,7 +125,7 @@ class Progress(Base):
             datetime: The failure timestamp
         """
         self.status = "failed"
-        self.completed_at = datetime.utcnow()
+        self.completed_at = datetime.now(tz.utc)
         
         # Calculate time spent
         if self.started_at:
@@ -145,7 +150,7 @@ class Progress(Base):
             "command": command,
             "error": error,
             "hint": hint,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(tz.utc).isoformat()
         }
         
         self.mistakes.append(mistake)
@@ -167,7 +172,7 @@ class Progress(Base):
         
         self.feedback[category].append({
             "message": message,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(tz.utc).isoformat()
         })
         
         return self.feedback
@@ -190,7 +195,7 @@ class Progress(Base):
         """
         if self.status == "in_progress" and self.started_at:
             # Calculate current duration for in-progress exercises
-            time_diff = datetime.utcnow() - self.started_at
+            time_diff = datetime.now(tz.utc) - self.started_at
             return self.time_spent + time_diff.total_seconds()
         
         return self.time_spent
@@ -221,9 +226,14 @@ class Progress(Base):
         """Update progress status."""
         if completed:
             self.status = "completed"
-            self.completed_at = datetime.utcnow()
+            self.completed_at = datetime.now(tz.utc)
         else:
             self.status = "in_progress"
+    
+    def assess_skill(self) -> int:
+        if self.status == 'completed':
+            return 10
+        return 5
     
     def __repr__(self):
         return f"<Progress(user_id='{self.user_id}', exercise_id='{self.exercise_id}', status='{self.status}')>"

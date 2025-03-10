@@ -3,8 +3,10 @@ import tempfile
 import shutil
 from typing import Generator
 from datetime import datetime
+from sqlalchemy import create_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
 
-from src.models import Exercise, GitCommand, UserProfile
+from src.models import Exercise, GitCommand, UserProfile, Base
 from src.exercises import ExerciseValidator
 
 
@@ -48,6 +50,22 @@ def pytest_configure(config):
         "markers",
         "integration: mark test as an integration test"
     )
+
+
+@pytest.fixture(scope='session')
+def db_engine():
+    engine = create_engine('sqlite:///:memory:')
+    Base.metadata.create_all(engine)
+    yield engine
+    Base.metadata.drop_all(engine)
+
+
+@pytest.fixture
+def db_session(db_engine):
+    Session = sessionmaker(bind=db_engine)
+    session = Session()
+    yield session
+    session.close()
 
 
 @pytest.fixture

@@ -8,7 +8,7 @@ including user information, skill level, and preferences.
 import uuid
 from datetime import datetime
 import pytz
-from sqlalchemy import Column, String, DateTime, Integer, Float, Boolean, JSON
+from sqlalchemy import Column, String, DateTime, Integer, Float, Boolean, JSON, ForeignKey
 from sqlalchemy.orm import relationship
 
 from src.database.init_db import Base
@@ -52,7 +52,7 @@ class UserProfile(Base):
     })
     
     # Relationships
-    progress = relationship("Progress", back_populates="user", cascade="save-update, merge, delete")
+    progress = relationship('Progress', back_populates='user', cascade='all, delete-orphan', single_parent=True, foreign_keys='Progress.user_id')
     
     def __init__(self, username, email=None, skill_level="beginner"):
         """

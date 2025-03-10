@@ -1,20 +1,19 @@
 import unittest
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, declarative_base
 from src.database.persistence_layer import PersistenceLayer
 from src.models.user_profile import UserProfile
 from src.models.exercise import Exercise, GitCommand
 from src.models.progress import Progress
 
 class TestPersistenceLayer(unittest.TestCase):
-    def setUp(self):
+    def setup_method(self, method):
         engine = create_engine('sqlite:///:memory:')
+        Base = declarative_base()
+        Base.metadata.create_all(engine)
         Session = sessionmaker(bind=engine)
-        session = Session()
-        UserProfile.metadata.create_all(engine)
-        Exercise.metadata.create_all(engine)
-        Progress.metadata.create_all(engine)
-        self.persistence = PersistenceLayer(session)
+        self.session = Session()
+        self.persistence = PersistenceLayer(self.session)
 
     def test_add_user(self):
         """Test adding a new user."""
